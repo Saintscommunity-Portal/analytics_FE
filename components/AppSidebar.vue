@@ -22,6 +22,11 @@ const menuItems = [
     to: '/members',
     icon: 'pi pi-id-card',
   },
+  {
+    label: 'Prayer Group',
+    to: '/prayer-group',
+    icon: 'pi pi-heart',
+  },
 ]
 </script>
 
