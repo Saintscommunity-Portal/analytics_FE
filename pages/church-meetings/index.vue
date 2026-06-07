@@ -1,4 +1,19 @@
 <script setup>
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip,
+} from 'chart.js'
+import { Bar, Doughnut, Line } from 'vue-chartjs'
+
+ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, LineElement, PointElement, Tooltip)
+
 definePageMeta({ middleware: 'auth', layout: 'admin' })
 
 const { request } = useAdminApi()
@@ -99,6 +114,62 @@ const reportCountsTotal = computed(() => (
   + Number(totals.value.first_timers_count || 0)
   + Number(totals.value.childrens_count || 0)
 ))
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: 'bottom' },
+  },
+}
+const attendanceChartData = computed(() => ({
+  labels: ['Workers present', 'Workers absent', 'Members present', 'Members absent'],
+  datasets: [{
+    data: [
+      Number(totals.value.worker_present_count || 0),
+      Number(totals.value.worker_absent_count || 0),
+      Number(totals.value.member_present_count || 0),
+      Number(totals.value.member_absent_count || 0),
+    ],
+    backgroundColor: ['#166534', '#d1d5db', '#2563eb', '#e5e7eb'],
+  }],
+}))
+const reportCountChartData = computed(() => ({
+  labels: ['Adult', 'Children', 'First timers'],
+  datasets: [{
+    label: 'Reported count',
+    data: [
+      Number(totals.value.ushers_count || 0),
+      Number(totals.value.childrens_count || 0),
+      Number(totals.value.first_timers_count || 0),
+    ],
+    backgroundColor: ['#a83632', '#2563eb', '#15803d'],
+  }],
+}))
+const meetingTypeChartData = computed(() => ({
+  labels: (dashboard.value?.meetingTypes || []).map((row) => displayValue(row.meeting_type)),
+  datasets: [{
+    label: 'Reported attendance',
+    data: (dashboard.value?.meetingTypes || []).map((row) => Number(row.total_reported_attendance || 0)),
+    backgroundColor: '#a83632',
+  }],
+}))
+const dailyAttendanceChartData = computed(() => ({
+  labels: (dashboard.value?.daily || []).map((row) => displayDate(row.date)),
+  datasets: [
+    {
+      label: 'Reported',
+      data: (dashboard.value?.daily || []).map((row) => Number(row.total_reported_attendance || 0)),
+      borderColor: '#a83632',
+      backgroundColor: '#a83632',
+    },
+    {
+      label: 'Physical',
+      data: (dashboard.value?.daily || []).map((row) => Number(row.total_physical_attendance || 0)),
+      borderColor: '#2563eb',
+      backgroundColor: '#2563eb',
+    },
+  ],
+}))
 
 function displayValue(value) {
   if (!value) return '-'
@@ -239,6 +310,41 @@ onMounted(fetchMeetings)
       <Card class="border border-gray-200 shadow-sm"><template #content><p class="m-0 text-sm text-gray-500">Report counts</p><h2 class="m-0 mt-2 text-2xl font-semibold text-[#a83632]">{{ reportCountsTotal }}</h2></template></Card>
       <Card class="border border-gray-200 shadow-sm"><template #content><p class="m-0 text-sm text-gray-500">Offerings</p><h2 class="m-0 mt-2 text-2xl font-semibold text-green-700">{{ totals.total_offering_amount || 0 }}</h2></template></Card>
       <Card class="border border-gray-200 shadow-sm"><template #content><p class="m-0 text-sm text-gray-500">First timers</p><h2 class="m-0 mt-2 text-2xl font-semibold text-gray-950">{{ totals.first_timers_count || 0 }}</h2></template></Card>
+    </div>
+
+    <div class="grid gap-4 xl:grid-cols-4">
+      <Card class="border border-gray-200 bg-white shadow-sm">
+        <template #content>
+          <p class="m-0 text-sm font-semibold text-gray-950">Attendance split</p>
+          <div class="mt-4 h-64">
+            <Doughnut :data="attendanceChartData" :options="chartOptions" />
+          </div>
+        </template>
+      </Card>
+      <Card class="border border-gray-200 bg-white shadow-sm">
+        <template #content>
+          <p class="m-0 text-sm font-semibold text-gray-950">Reported count</p>
+          <div class="mt-4 h-64">
+            <Bar :data="reportCountChartData" :options="chartOptions" />
+          </div>
+        </template>
+      </Card>
+      <Card class="border border-gray-200 bg-white shadow-sm">
+        <template #content>
+          <p class="m-0 text-sm font-semibold text-gray-950">Meeting types</p>
+          <div class="mt-4 h-64">
+            <Bar :data="meetingTypeChartData" :options="chartOptions" />
+          </div>
+        </template>
+      </Card>
+      <Card class="border border-gray-200 bg-white shadow-sm">
+        <template #content>
+          <p class="m-0 text-sm font-semibold text-gray-950">Daily attendance</p>
+          <div class="mt-4 h-64">
+            <Line :data="dailyAttendanceChartData" :options="chartOptions" />
+          </div>
+        </template>
+      </Card>
     </div>
 
     <Card class="border border-gray-200 bg-white shadow-sm">
