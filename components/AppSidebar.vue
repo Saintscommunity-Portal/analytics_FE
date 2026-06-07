@@ -32,6 +32,11 @@ const menuItems = [
     to: '/study-group',
     icon: 'pi pi-book',
   },
+  {
+    label: 'Church Meetings',
+    to: '/church-meetings',
+    icon: 'pi pi-calendar',
+  },
 ]
 </script>
 
