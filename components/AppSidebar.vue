@@ -37,6 +37,16 @@ const menuItems = [
     to: '/church-meetings',
     icon: 'pi pi-calendar',
   },
+  {
+    label: 'Outreach',
+    to: '/outreaches',
+    icon: 'pi pi-send',
+  },
+  {
+    label: 'Follow Ups',
+    to: '/followups',
+    icon: 'pi pi-comments',
+  },
 ]
 </script>
 
