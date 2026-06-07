@@ -42,6 +42,11 @@ const menuItems = [
     to: '/outreaches',
     icon: 'pi pi-send',
   },
+  {
+    label: 'Follow Ups',
+    to: '/followups',
+    icon: 'pi pi-comments',
+  },
 ]
 </script>
 
