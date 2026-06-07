@@ -84,7 +84,7 @@ async function handleSubmit() {
             </div>
 
             <Button
-              class="border-[#a83632] bg-[#a83632] hover:border-[#922f2c] hover:bg-[#922f2c]"
+              class="border-[#a83632] bg-[#a83632] text-white hover:border-[#922f2c] hover:bg-[#922f2c] hover:text-white"
               label="Sign in"
               type="submit"
               :loading="auth.loading.value"

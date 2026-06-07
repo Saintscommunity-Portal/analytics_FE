@@ -22,6 +22,21 @@ const menuItems = [
     to: '/members',
     icon: 'pi pi-id-card',
   },
+  {
+    label: 'Prayer Group',
+    to: '/prayer-group',
+    icon: 'pi pi-heart',
+  },
+  {
+    label: 'Study Group',
+    to: '/study-group',
+    icon: 'pi pi-book',
+  },
+  {
+    label: 'Church Meetings',
+    to: '/church-meetings',
+    icon: 'pi pi-calendar',
+  },
 ]
 </script>
 

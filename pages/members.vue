@@ -1,4 +1,6 @@
 <script setup>
+import TableDownloadDialog from '~/components/TableDownloadDialog.vue'
+
 definePageMeta({
   middleware: 'auth',
   layout: 'admin',
@@ -14,6 +16,8 @@ const errorMessage = ref('')
 const deleteError = ref('')
 const deleteDialogOpen = ref(false)
 const memberToDelete = ref(null)
+const downloadDialogOpen = ref(false)
+const filtersOpen = ref(true)
 const members = ref([])
 const meta = ref({
   current_page: 1,
@@ -26,6 +30,7 @@ const meta = ref({
 
 const filters = reactive({
   search: '',
+  slug: '',
   gender: '',
   date_of_birth_from: '',
   date_of_birth_to: '',
@@ -35,6 +40,7 @@ const filters = reactive({
   church_id: null,
   fellowship_id: null,
   cell_id: null,
+  prayer_group_id: null,
 })
 
 const first = ref(0)
@@ -44,9 +50,12 @@ const sortOrder = ref(-1)
 
 const baseColumns = [
   { field: 'fullName', header: 'Full name', sortable: true },
+  { field: 'slug', header: 'Slug', sortable: true },
   { field: 'workerName', header: 'Worker' },
+  { field: 'prayerGroupId', header: 'Prayer group', sortable: true },
   { field: 'gender', header: 'Gender', sortable: true },
   { field: 'dateOfBirth', header: 'Date of birth', sortable: true },
+  { field: 'isChild', header: 'Child' },
   { field: 'phone1', header: 'Phone 1', sortable: true },
   { field: 'phone2', header: 'Phone 2', sortable: true },
   { field: 'email', header: 'Email', sortable: true },
@@ -68,6 +77,7 @@ const baseColumns = [
 
 const sortFieldMap = {
   fullName: 'full_name',
+  slug: 'slug',
   gender: 'gender',
   dateOfBirth: 'date_of_birth',
   phone1: 'phone_1',
@@ -79,6 +89,7 @@ const sortFieldMap = {
   churchName: 'church_id',
   fellowshipName: 'fellowship_id',
   cellName: 'cell_id',
+  prayerGroupId: 'prayer_group_id',
   dateAdded: 'date_added',
   nameUpdatedAt: 'updated_at',
   createdAt: 'created_at',
@@ -102,6 +113,12 @@ const tableRows = computed(() => {
 const totalRecords = computed(() => meta.value?.total || 0)
 const hasFilters = computed(() => Object.values(filters).some((value) => value !== '' && value !== null))
 const entities = computed(() => authStore.entities || {})
+const downloadQuery = computed(() => {
+  const query = buildQuery(1)
+  delete query.page
+  delete query.per_page
+  return query
+})
 
 const churchOptions = computed(() => {
   return Array.isArray(entities.value.churches) ? entities.value.churches : []
@@ -336,15 +353,38 @@ onMounted(() => {
         </p>
       </div>
 
-      <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm">
-        <span class="font-semibold text-gray-950">{{ totalRecords }}</span>
-        <span class="ml-1 text-gray-500">members found</span>
+      <div class="flex flex-col gap-3 sm:items-end">
+        <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm">
+          <span class="font-semibold text-gray-950">{{ totalRecords }}</span>
+          <span class="ml-1 text-gray-500">members found</span>
+        </div>
+        <Button
+          label="Download"
+          icon="pi pi-cloud-download"
+          class="!border-[#a83632] !bg-[#a83632] !text-white hover:!border-[#922f2c] hover:!bg-[#922f2c] hover:!text-white"
+          @click="downloadDialogOpen = true"
+        />
       </div>
     </div>
 
     <Card class="border border-gray-200 bg-white shadow-sm">
       <template #content>
-        <div class="space-y-5">
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-3 text-left"
+          @click="filtersOpen = !filtersOpen"
+        >
+          <div>
+            <h2 class="m-0 text-sm font-semibold text-gray-950">Member filters</h2>
+            <p class="m-0 mt-1 text-xs text-gray-500">Refine the member list by search, date of birth, location, and assigned hierarchy.</p>
+          </div>
+          <i
+            class="pi text-sm text-gray-500 transition-transform"
+            :class="filtersOpen ? 'pi-chevron-up' : 'pi-chevron-down'"
+          />
+        </button>
+
+        <div v-if="filtersOpen" class="mt-5 space-y-5 border-t border-gray-100 pt-5">
           <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <span class="p-input-icon-left">
               <i class="pi pi-user" />
@@ -355,6 +395,12 @@ onMounted(() => {
                 @keyup.enter="applyFilters"
               />
             </span>
+            <InputText
+              v-model="filters.slug"
+              class="w-full"
+              placeholder="Slug"
+              @keyup.enter="applyFilters"
+            />
             <Select
               v-model="filters.gender"
               :options="['male', 'female']"
@@ -438,6 +484,12 @@ onMounted(() => {
               class="w-full"
               :disabled="cellDisabled"
             />
+            <InputText
+              v-model="filters.prayer_group_id"
+              class="w-full"
+              placeholder="Prayer group ID"
+              @keyup.enter="applyFilters"
+            />
           </div>
 
           <div class="flex flex-col gap-3 border-t border-gray-100 pt-4 lg:flex-row lg:items-center lg:justify-between">
@@ -462,7 +514,7 @@ onMounted(() => {
               <Button
                 label="Apply filters"
                 icon="pi pi-filter"
-                class="!border-[#a83632] !bg-[#a83632] hover:!border-[#922f2c] hover:!bg-[#922f2c]"
+                class="!border-[#a83632] !bg-[#a83632] !text-white hover:!border-[#922f2c] hover:!bg-[#922f2c] hover:!text-white"
                 :loading="loading"
                 @click="applyFilters"
               />
@@ -611,6 +663,13 @@ onMounted(() => {
         </div>
       </template>
     </Dialog>
+
+    <TableDownloadDialog
+      v-model:visible="downloadDialogOpen"
+      table-name="members"
+      default-title="Members export"
+      :query="downloadQuery"
+    />
   </section>
 </template>
 
