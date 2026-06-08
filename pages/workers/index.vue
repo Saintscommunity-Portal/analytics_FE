@@ -553,6 +553,19 @@ onMounted(() => {
               </span>
             </template>
           </Column>
+          <Column header="Profile" frozen align-frozen="right" style="min-width: 130px">
+            <template #body="{ data }">
+              <Skeleton v-if="data.__loading" height="2rem" border-radius="8px" />
+              <NuxtLink
+                v-else
+                :to="`/workers/${data.id}`"
+                class="inline-flex items-center gap-2 rounded-md border border-[#a83632] bg-[#a83632] px-3 py-2 text-sm font-semibold text-white no-underline hover:border-[#922f2c] hover:bg-[#922f2c]"
+              >
+                <i class="pi pi-user text-xs" />
+                View
+              </NuxtLink>
+            </template>
+          </Column>
         </DataTable>
       </template>
     </Card>
