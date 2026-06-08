@@ -2,6 +2,7 @@
 import { reactive } from 'vue'
 
 definePageMeta({
+  layout: false,
   middleware: 'guest',
 })
 
