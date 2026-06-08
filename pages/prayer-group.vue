@@ -147,7 +147,8 @@ const totalRecords = computed(() => meta.value?.total || 0)
 const hasFilters = computed(() => Object.values(filters).some((value) => value !== '' && value !== null))
 const dashboardTotals = computed(() => dashboard.value?.totals || {})
 const dashboardPercentages = computed(() => dashboard.value?.percentages || {})
-const dashboardRecordTypes = computed(() => dashboard.value?.recordTypes || [])
+const dashboardRecordTypes = computed(() => normalizeList(dashboard.value?.recordTypes))
+const dashboardDaily = computed(() => normalizeList(dashboard.value?.daily))
 const presentAttendance = computed(() => attendanceRows.value.filter((row) => row.participationStatus === 'present'))
 const absentAttendance = computed(() => attendanceRows.value.filter((row) => row.participationStatus === 'absent'))
 const displayedAttendance = computed(() => {
@@ -243,6 +244,13 @@ function setDefaultDashboardRange() {
   dashboardFilters.date_to = toDateInput(today)
 }
 
+function normalizeList(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.data)) return value.data
+  if (value && typeof value === 'object') return Object.values(value)
+  return []
+}
+
 function doughnutData(labels, values, colors) {
   return {
     labels,
@@ -320,18 +328,18 @@ const recordTypeChartData = computed(() => ({
 }))
 
 const dailyChartData = computed(() => ({
-  labels: (dashboard.value?.daily || []).map((item) => String(item.date).slice(0, 10)),
+  labels: dashboardDaily.value.map((item) => String(item.date).slice(0, 10)),
   datasets: [
     {
       label: 'Present',
-      data: (dashboard.value?.daily || []).map((item) => Number(item.total_present || item.totalPresent || 0)),
+      data: dashboardDaily.value.map((item) => Number(item.total_present || item.totalPresent || 0)),
       borderColor: '#a83632',
       backgroundColor: '#a83632',
       tension: 0.35,
     },
     {
       label: 'Absent',
-      data: (dashboard.value?.daily || []).map((item) => Number(item.total_absent || item.totalAbsent || 0)),
+      data: dashboardDaily.value.map((item) => Number(item.total_absent || item.totalAbsent || 0)),
       borderColor: '#6b7280',
       backgroundColor: '#6b7280',
       tension: 0.35,
