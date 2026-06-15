@@ -1,5 +1,17 @@
 <script setup>
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+} from 'chart.js'
 import TableDownloadDialog from '~/components/TableDownloadDialog.vue'
+import { Bar, Doughnut } from 'vue-chartjs'
+
+ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, Tooltip)
 
 definePageMeta({
   middleware: 'auth',
@@ -14,6 +26,9 @@ const loading = ref(true)
 const errorMessage = ref('')
 const downloadDialogOpen = ref(false)
 const filtersOpen = ref(true)
+const analyticsOpen = ref(true)
+const dashboardLoading = ref(false)
+const dashboard = ref(null)
 const workers = ref([])
 const meta = ref({
   current_page: 1,
@@ -90,6 +105,9 @@ const tableRows = computed(() => {
 const totalRecords = computed(() => meta.value?.total || 0)
 const hasFilters = computed(() => Object.values(filters).some((value) => value))
 const entities = computed(() => authStore.entities || {})
+const dashboardTotals = computed(() => dashboard.value?.totals || {})
+const workerAgeDistribution = computed(() => dashboard.value?.workerAgeDistribution || [])
+const workersByStatus = computed(() => dashboard.value?.workersByStatus || [])
 const downloadQuery = computed(() => {
   const query = buildQuery(1)
   delete query.page
@@ -132,6 +150,41 @@ const stateOptions = computed(() => locationsStore.stateOptions(filters.country)
 const stateDisabled = computed(() => !filters.country || stateOptions.value.length === 0)
 const areaOptions = computed(() => locationsStore.subdivisionOptions(filters.country, filters.state))
 const areaDisabled = computed(() => !filters.country || !filters.state || areaOptions.value.length === 0)
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { position: 'bottom' } },
+}
+const barOptions = {
+  ...chartOptions,
+  scales: {
+    x: { grid: { display: false } },
+    y: { beginAtZero: true, ticks: { precision: 0 } },
+  },
+}
+const chartPalette = ['#a83632', '#2563eb', '#15803d', '#f59e0b', '#7c3aed', '#0f766e', '#db2777', '#6b7280']
+const workerStatCards = computed(() => [
+  { label: 'Workers', value: dashboardTotals.value.workers || totalRecords.value || 0, detail: 'Within current scope' },
+  { label: 'Members', value: dashboardTotals.value.members || 0, detail: 'Related member records' },
+  { label: 'Children', value: dashboardTotals.value.children || 0, detail: 'Member records' },
+  { label: 'Adults', value: dashboardTotals.value.adultMembers || 0, detail: 'Member records' },
+])
+const workerAgeChartData = computed(() => ({
+  labels: workerAgeDistribution.value.map((item) => item.label),
+  datasets: [{
+    label: 'Workers',
+    data: workerAgeDistribution.value.map((item) => item.count),
+    backgroundColor: workerAgeDistribution.value.map((_, index) => chartPalette[index % chartPalette.length]),
+    borderRadius: 8,
+  }],
+}))
+const workerStatusChartData = computed(() => ({
+  labels: workersByStatus.value.map((item) => item.label),
+  datasets: [{
+    data: workersByStatus.value.map((item) => item.count),
+    backgroundColor: workersByStatus.value.map((_, index) => chartPalette[index % chartPalette.length]),
+  }],
+}))
 
 function labelFromKey(key) {
   return String(key)
@@ -234,6 +287,27 @@ async function fetchWorkers(page = 1) {
   }
 }
 
+async function fetchDashboard() {
+  dashboardLoading.value = true
+
+  try {
+    const query = {}
+    for (const key of ['church_id', 'fellowship_id', 'cell_id', 'country', 'state', 'area']) {
+      if (filters[key]) query[key] = filters[key]
+    }
+
+    const response = await request('/people-dashboard', {
+      method: 'GET',
+      query,
+    })
+    dashboard.value = response?.data || null
+  } catch {
+    dashboard.value = null
+  } finally {
+    dashboardLoading.value = false
+  }
+}
+
 function onPage(event) {
   rows.value = event.rows
   first.value = event.first
@@ -243,6 +317,7 @@ function onPage(event) {
 function applyFilters() {
   first.value = 0
   fetchWorkers(1)
+  fetchDashboard()
 }
 
 function clearFilters() {
@@ -274,6 +349,7 @@ watch(() => filters.state, () => {
 onMounted(() => {
   locationsStore.fetchCountries()
   fetchWorkers()
+  fetchDashboard()
 })
 </script>
 
@@ -483,6 +559,61 @@ onMounted(() => {
       </template>
     </Card>
 
+    <Card class="border border-gray-200 bg-white shadow-sm">
+      <template #content>
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-3 text-left"
+          @click="analyticsOpen = !analyticsOpen"
+        >
+          <div>
+            <h2 class="m-0 text-sm font-semibold text-gray-950">Worker analytics</h2>
+            <p class="m-0 mt-1 text-xs text-gray-500">Summary stats, age distribution, and status mix for the filtered worker scope.</p>
+          </div>
+          <i
+            class="pi text-sm text-gray-500 transition-transform"
+            :class="analyticsOpen ? 'pi-chevron-up' : 'pi-chevron-down'"
+          />
+        </button>
+
+        <div v-if="analyticsOpen" class="mt-5 space-y-4 border-t border-gray-100 pt-5">
+          <div class="grid gap-4 md:grid-cols-4">
+            <Card v-for="card in workerStatCards" :key="card.label" class="border border-gray-200 bg-white shadow-sm">
+              <template #content>
+                <Skeleton v-if="dashboardLoading" height="4.5rem" border-radius="12px" />
+                <div v-else>
+                  <p class="m-0 text-sm text-gray-500">{{ card.label }}</p>
+                  <h2 class="m-0 mt-2 text-2xl font-semibold text-gray-950">{{ card.value }}</h2>
+                  <p class="m-0 mt-1 text-xs text-gray-500">{{ card.detail }}</p>
+                </div>
+              </template>
+            </Card>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <Card class="border border-gray-200 bg-white shadow-sm">
+              <template #content>
+                <p class="m-0 text-sm font-semibold text-gray-950">Worker age distribution</p>
+                <div class="mt-4 h-72">
+                  <Skeleton v-if="dashboardLoading" height="100%" border-radius="12px" />
+                  <Bar v-else :data="workerAgeChartData" :options="barOptions" />
+                </div>
+              </template>
+            </Card>
+            <Card class="border border-gray-200 bg-white shadow-sm">
+              <template #content>
+                <p class="m-0 text-sm font-semibold text-gray-950">Workers by status</p>
+                <div class="mt-4 h-72">
+                  <Skeleton v-if="dashboardLoading" height="100%" border-radius="12px" />
+                  <Doughnut v-else :data="workerStatusChartData" :options="chartOptions" />
+                </div>
+              </template>
+            </Card>
+          </div>
+        </div>
+      </template>
+    </Card>
+
     <Message
       v-if="errorMessage"
       severity="error"
@@ -595,11 +726,11 @@ onMounted(() => {
 }
 
 :deep(.workers-table .p-datatable-tbody > tr > td) {
-  color: #ffffff;
+  color: #111827;
 }
 
 :deep(.workers-table .p-datatable-tbody > tr > td span:not(.p-tag-label)) {
-  color: #ffffff;
+  color: #111827;
 }
 
 :deep(.workers-table .p-datatable-tbody > tr:hover > td span:not(.p-tag-label)) {
@@ -610,5 +741,18 @@ onMounted(() => {
   background: #a83632;
   border-color: #a83632;
   color: #ffffff;
+}
+
+:global(.dark) :deep(.workers-table .p-datatable-tbody > tr > td) {
+  color: #f9fafb;
+}
+
+:global(.dark) :deep(.workers-table .p-datatable-tbody > tr > td span:not(.p-tag-label)) {
+  color: #f9fafb;
+}
+
+:global(.dark) :deep(.workers-table .p-datatable-tbody > tr:hover > td),
+:global(.dark) :deep(.workers-table .p-datatable-tbody > tr:hover > td span:not(.p-tag-label)) {
+  color: #111827;
 }
 </style>

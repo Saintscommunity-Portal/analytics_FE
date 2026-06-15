@@ -26,6 +26,13 @@ const outreaches = ref([])
 const dashboard = ref(null)
 const workerOptions = ref([])
 const meta = ref({ current_page: 1, last_page: 1, total: 0, per_page: 20 })
+const workerSummaryOpen = ref(false)
+const workerSummaryRows = ref([])
+const workerSummaryLoading = ref(false)
+const workerSummaryMeta = ref({ current_page: 1, from: 0, last_page: 1, per_page: 20, to: 0, total: 0 })
+const workerSummaryInfo = ref({ dateFrom: '', dateTo: '', rangeWeekCount: 0, reportFilter: 'all' })
+const workerSummaryFirst = ref(0)
+const workerSummaryRowsPerPage = ref(20)
 const filters = reactive({
   from_date: '',
   to_date: '',
@@ -34,6 +41,21 @@ const filters = reactive({
   cell_id: '',
   worker_id: '',
 })
+const workerSummaryFilters = reactive({
+  from_date: '',
+  to_date: '',
+  church_id: '',
+  fellowship_id: '',
+  cell_id: '',
+  worker_id: '',
+  report_filter: 'all',
+})
+const reportFilterOptions = [
+  { label: 'All souls reached', value: 'all' },
+  { label: 'Saved only', value: 'saved' },
+  { label: 'Filled only', value: 'filled' },
+  { label: 'Healed only', value: 'healed' },
+]
 
 const churchOptions = computed(() => (authStore.entities?.churches || []).map((church) => ({ label: church.name, value: church.id, fellowships: church.fellowships || [] })))
 const fellowshipOptions = computed(() => {
@@ -122,6 +144,14 @@ function query(page = 1) {
   return output
 }
 
+function workerSummaryQuery(page = 1) {
+  const output = { page, per_page: workerSummaryRowsPerPage.value }
+  Object.entries(workerSummaryFilters).forEach(([key, value]) => {
+    if (value !== '' && value !== null && value !== undefined) output[key] = value
+  })
+  return output
+}
+
 async function fetchOutreaches(page = 1) {
   loading.value = true
   errorMessage.value = ''
@@ -160,6 +190,64 @@ async function fetchWorkerOptions() {
   }
 }
 
+async function fetchWorkerSummary(page = 1) {
+  workerSummaryLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await request('/outreach-worker-summary', {
+      method: 'GET',
+      query: workerSummaryQuery(page),
+    })
+    workerSummaryRows.value = Array.isArray(response?.data) ? response.data : []
+    workerSummaryMeta.value = { ...workerSummaryMeta.value, ...(response?.meta || {}) }
+    workerSummaryInfo.value = { ...workerSummaryInfo.value, ...(response?.summary || {}) }
+    workerSummaryRowsPerPage.value = Number(workerSummaryMeta.value.per_page || workerSummaryRowsPerPage.value)
+    workerSummaryFirst.value = ((Number(workerSummaryMeta.value.current_page) || page) - 1) * workerSummaryRowsPerPage.value
+  } catch (error) {
+    workerSummaryRows.value = []
+    errorMessage.value = error?.data?.message || error?.message || 'Unable to load outreach worker summary.'
+  } finally {
+    workerSummaryLoading.value = false
+  }
+}
+
+function openWorkerSummary() {
+  workerSummaryFilters.from_date = filters.from_date
+  workerSummaryFilters.to_date = filters.to_date
+  workerSummaryFilters.church_id = filters.church_id
+  workerSummaryFilters.fellowship_id = filters.fellowship_id
+  workerSummaryFilters.cell_id = filters.cell_id
+  workerSummaryFilters.worker_id = filters.worker_id
+  workerSummaryFilters.report_filter = 'all'
+  workerSummaryFirst.value = 0
+  workerSummaryOpen.value = true
+  fetchWorkerSummary(1)
+}
+
+function applyWorkerSummaryFilters() {
+  workerSummaryFirst.value = 0
+  fetchWorkerSummary(1)
+}
+
+function clearWorkerSummaryFilters() {
+  workerSummaryFilters.from_date = filters.from_date
+  workerSummaryFilters.to_date = filters.to_date
+  workerSummaryFilters.church_id = ''
+  workerSummaryFilters.fellowship_id = ''
+  workerSummaryFilters.cell_id = ''
+  workerSummaryFilters.worker_id = ''
+  workerSummaryFilters.report_filter = 'all'
+  workerSummaryFirst.value = 0
+  fetchWorkerSummary(1)
+}
+
+function onWorkerSummaryPage(event) {
+  workerSummaryRowsPerPage.value = event.rows
+  workerSummaryFirst.value = event.first
+  fetchWorkerSummary(event.page + 1)
+}
+
 function viewOutreach(outreach) {
   navigateTo(`/outreaches/${outreach.id}`)
 }
@@ -171,10 +259,20 @@ onMounted(async () => {
 
 <template>
   <section class="space-y-5">
-    <div>
-      <p class="m-0 text-xs font-bold uppercase tracking-[0.18em] text-[#a83632]">Outreach</p>
-      <h1 class="m-0 mt-2 text-3xl font-semibold tracking-tight text-gray-950">Outreach analytics</h1>
-      <p class="m-0 mt-2 text-sm text-gray-500">Review worker outreach activities and reports within your scope.</p>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="m-0 text-xs font-bold uppercase tracking-[0.18em] text-[#a83632]">Outreach</p>
+        <h1 class="m-0 mt-2 text-3xl font-semibold tracking-tight text-gray-950">Outreach analytics</h1>
+        <p class="m-0 mt-2 text-sm text-gray-500">Review worker outreach activities and reports within your scope.</p>
+      </div>
+      <Button
+        label="Worker activity summary"
+        icon="pi pi-users"
+        severity="secondary"
+        outlined
+        class="!border-[#a83632] !text-[#a83632]"
+        @click="openWorkerSummary"
+      />
     </div>
 
     <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
@@ -258,5 +356,105 @@ onMounted(async () => {
         </DataTable>
       </template>
     </Card>
+
+    <Dialog
+      v-model:visible="workerSummaryOpen"
+      modal
+      header="Outreach worker activity summary"
+      :style="{ width: 'min(96vw, 1180px)' }"
+    >
+      <div class="space-y-4">
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="grid gap-3 md:grid-cols-4">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">From</label>
+              <InputText v-model="workerSummaryFilters.from_date" type="date" class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">To</label>
+              <InputText v-model="workerSummaryFilters.to_date" type="date" class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Report outcome</label>
+              <Select v-model="workerSummaryFilters.report_filter" :options="reportFilterOptions" option-label="label" option-value="value" class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Weeks in range</label>
+              <div class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-950">
+                {{ workerSummaryInfo.rangeWeekCount || 0 }}
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 grid gap-3 md:grid-cols-4">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Church</label>
+              <Select v-model="workerSummaryFilters.church_id" :options="churchOptions" option-label="label" option-value="value" placeholder="Church" show-clear class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Fellowship</label>
+              <Select v-model="workerSummaryFilters.fellowship_id" :options="fellowshipOptions" option-label="label" option-value="value" placeholder="Fellowship" show-clear class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Cell</label>
+              <Select v-model="workerSummaryFilters.cell_id" :options="cellOptions" option-label="label" option-value="value" placeholder="Cell" show-clear class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Worker</label>
+              <Select v-model="workerSummaryFilters.worker_id" :options="workerOptions" :loading="workersLoading" option-label="label" option-value="value" placeholder="Worker" show-clear class="w-full" />
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-wrap justify-end gap-2">
+            <Button label="Reset" severity="secondary" outlined @click="clearWorkerSummaryFilters" />
+            <Button label="Apply" icon="pi pi-filter" class="!border-[#a83632] !bg-[#a83632] !text-white" :loading="workerSummaryLoading" @click="applyWorkerSummaryFilters" />
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-[#a83632]/20 bg-[#a83632]/5 px-4 py-3 text-sm text-gray-700">
+          Outreach activity is counted from outreach records. Souls reached is counted from outreach reports and respects the selected outcome filter.
+        </div>
+
+        <DataTable
+          :value="workerSummaryRows"
+          lazy
+          paginator
+          :first="workerSummaryFirst"
+          :rows="workerSummaryRowsPerPage"
+          :total-records="workerSummaryMeta.total || 0"
+          :rows-per-page-options="[10, 20, 50, 100]"
+          scrollable
+          scroll-height="520px"
+          table-style="min-width: 1120px"
+          class="text-sm"
+          :loading="workerSummaryLoading"
+          @page="onWorkerSummaryPage"
+        >
+          <Column field="workerName" header="Worker" style="min-width: 210px">
+            <template #body="{ data }">
+              <div>
+                <p class="m-0 font-semibold text-gray-950">{{ data.workerName }}</p>
+                <p class="m-0 text-xs text-gray-500">{{ data.workerSlug || '-' }}</p>
+              </div>
+            </template>
+          </Column>
+          <Column field="participationLabel" header="Participation" style="min-width: 140px">
+            <template #body="{ data }">
+              <span class="rounded-full bg-[#a83632]/10 px-3 py-1 text-sm font-semibold text-[#a83632]">
+                {{ data.participationLabel }}
+              </span>
+            </template>
+          </Column>
+          <Column field="averageParticipationPerWeek" header="Avg / week" style="min-width: 120px" />
+          <Column field="soulsReachedCount" header="Souls reached" style="min-width: 130px" />
+          <Column field="savedCount" header="Saved" style="min-width: 100px" />
+          <Column field="filledCount" header="Filled" style="min-width: 100px" />
+          <Column field="healedCount" header="Healed" style="min-width: 100px" />
+          <Column field="churchName" header="Church" style="min-width: 180px" />
+          <Column field="fellowshipName" header="Fellowship" style="min-width: 180px" />
+          <Column field="cellName" header="Cell" style="min-width: 160px" />
+        </DataTable>
+      </div>
+    </Dialog>
   </section>
 </template>

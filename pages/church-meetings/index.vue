@@ -29,8 +29,26 @@ const selectedMeeting = ref(null)
 const meetings = ref([])
 const dashboard = ref(null)
 const meta = ref({ current_page: 1, last_page: 1, total: 0, per_page: 10 })
+const participantSummaryOpen = ref(false)
+const participantSummaryRows = ref([])
+const participantSummaryLoading = ref(false)
+const participantSummaryMeta = ref({ current_page: 1, from: 0, last_page: 1, per_page: 10, to: 0, total: 0 })
+const participantSummaryInfo = ref({ heldMeetings: 0, dateFrom: '', dateTo: '' })
+const participantSummaryFirst = ref(0)
+const participantSummaryRowsPerPage = ref(10)
 
 const filters = reactive({ type: '', status: '', church_id: '', fellowship_id: '', cell_id: '', date_from: '', date_to: '' })
+const participantSummaryFilters = reactive({
+  date_from: '',
+  date_to: '',
+  church_id: '',
+  fellowship_id: '',
+  cell_id: '',
+  type: '',
+  person_type: '',
+  participation_min: null,
+  participation_max: null,
+})
 const form = reactive({ meeting_name: '', type: 'sunday_service', meeting_id: '', church_id: null, fellowship_id: null, cell_id: null, meeting_date: '' })
 
 const meetingTypes = [
@@ -109,6 +127,7 @@ const cellOptions = computed(() => {
   })))
 })
 const totals = computed(() => dashboard.value?.totals || {})
+const totalParticipantSummaryRecords = computed(() => participantSummaryMeta.value?.total || 0)
 const reportCountsTotal = computed(() => (
   Number(totals.value.ushers_count || 0)
   + Number(totals.value.first_timers_count || 0)
@@ -217,6 +236,14 @@ function query(page = 1) {
   return output
 }
 
+function buildParticipantSummaryQuery(page = 1) {
+  const output = { page, per_page: participantSummaryRowsPerPage.value }
+  Object.entries(participantSummaryFilters).forEach(([key, value]) => {
+    if (value !== '' && value !== null && value !== undefined) output[key] = value
+  })
+  return output
+}
+
 async function fetchMeetings(page = 1) {
   loading.value = true
   errorMessage.value = ''
@@ -233,6 +260,69 @@ async function fetchMeetings(page = 1) {
   } finally {
     loading.value = false
   }
+}
+
+async function fetchParticipantSummary(page = 1) {
+  participantSummaryLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await request('/church-meeting-participants/summary', {
+      method: 'GET',
+      query: buildParticipantSummaryQuery(page),
+    })
+
+    participantSummaryRows.value = Array.isArray(response?.data) ? response.data : []
+    participantSummaryMeta.value = { ...participantSummaryMeta.value, ...(response?.meta || {}) }
+    participantSummaryInfo.value = { ...participantSummaryInfo.value, ...(response?.summary || {}) }
+    participantSummaryRowsPerPage.value = Number(participantSummaryMeta.value.per_page || participantSummaryRowsPerPage.value)
+    participantSummaryFirst.value = ((Number(participantSummaryMeta.value.current_page) || page) - 1) * participantSummaryRowsPerPage.value
+  } catch (error) {
+    participantSummaryRows.value = []
+    errorMessage.value = error?.data?.message || error?.message || 'Unable to load church meeting participant summary.'
+  } finally {
+    participantSummaryLoading.value = false
+  }
+}
+
+function openParticipantSummary() {
+  participantSummaryFilters.date_from = filters.date_from
+  participantSummaryFilters.date_to = filters.date_to
+  participantSummaryFilters.church_id = filters.church_id
+  participantSummaryFilters.fellowship_id = filters.fellowship_id
+  participantSummaryFilters.cell_id = filters.cell_id
+  participantSummaryFilters.type = filters.type
+  participantSummaryFilters.person_type = ''
+  participantSummaryFilters.participation_min = null
+  participantSummaryFilters.participation_max = null
+  participantSummaryFirst.value = 0
+  participantSummaryOpen.value = true
+  fetchParticipantSummary(1)
+}
+
+function applyParticipantSummaryFilters() {
+  participantSummaryFirst.value = 0
+  fetchParticipantSummary(1)
+}
+
+function clearParticipantSummaryFilters() {
+  participantSummaryFilters.date_from = filters.date_from
+  participantSummaryFilters.date_to = filters.date_to
+  participantSummaryFilters.church_id = ''
+  participantSummaryFilters.fellowship_id = ''
+  participantSummaryFilters.cell_id = ''
+  participantSummaryFilters.type = ''
+  participantSummaryFilters.person_type = ''
+  participantSummaryFilters.participation_min = null
+  participantSummaryFilters.participation_max = null
+  participantSummaryFirst.value = 0
+  fetchParticipantSummary(1)
+}
+
+function onParticipantSummaryPage(event) {
+  participantSummaryRowsPerPage.value = event.rows
+  participantSummaryFirst.value = event.first
+  fetchParticipantSummary(event.page + 1)
 }
 
 function openCreate() {
@@ -300,7 +390,17 @@ onMounted(fetchMeetings)
         <h1 class="m-0 mt-2 text-3xl font-semibold tracking-tight text-gray-950">Meetings</h1>
         <p class="m-0 mt-2 text-sm text-gray-500">Create meetings, complete them, record offerings, and manage report counts.</p>
       </div>
-      <Button label="New meeting" icon="pi pi-plus" class="!border-[#a83632] !bg-[#a83632] !text-white" @click="openCreate" />
+      <div class="flex flex-wrap gap-2">
+        <Button
+          label="Participant summary"
+          icon="pi pi-users"
+          severity="secondary"
+          outlined
+          class="!border-[#a83632] !text-[#a83632]"
+          @click="openParticipantSummary"
+        />
+        <Button label="New meeting" icon="pi pi-plus" class="!border-[#a83632] !bg-[#a83632] !text-white" @click="openCreate" />
+      </div>
     </div>
 
     <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
@@ -396,6 +496,117 @@ onMounted(fetchMeetings)
         <InputText v-model="form.meeting_date" type="datetime-local" />
       </div>
       <template #footer><Button label="Cancel" severity="secondary" outlined @click="createOpen = false" /><Button label="Create" :loading="saving" class="!border-[#a83632] !bg-[#a83632] !text-white" @click="createMeeting" /></template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="participantSummaryOpen"
+      modal
+      header="Church meeting participant summary"
+      :style="{ width: 'min(96vw, 1120px)' }"
+    >
+      <div class="space-y-4">
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="grid gap-3 md:grid-cols-4">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">From</label>
+              <InputText v-model="participantSummaryFilters.date_from" type="date" class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">To</label>
+              <InputText v-model="participantSummaryFilters.date_to" type="date" class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Person</label>
+              <Select
+                v-model="participantSummaryFilters.person_type"
+                :options="[
+                  { label: 'Workers and members', value: '' },
+                  { label: 'Workers', value: 'worker' },
+                  { label: 'Members', value: 'member' },
+                ]"
+                option-label="label"
+                option-value="value"
+                class="w-full"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Meetings held</label>
+              <div class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-950">
+                {{ participantSummaryInfo.heldMeetings || 0 }}
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 grid gap-3 md:grid-cols-4">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Church</label>
+              <Select v-model="participantSummaryFilters.church_id" :options="churchOptions" option-label="label" option-value="value" placeholder="Church" show-clear class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Fellowship</label>
+              <Select v-model="participantSummaryFilters.fellowship_id" :options="fellowshipOptions" option-label="label" option-value="value" placeholder="Fellowship" show-clear class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Cell</label>
+              <Select v-model="participantSummaryFilters.cell_id" :options="cellOptions" option-label="label" option-value="value" placeholder="Cell" show-clear class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Meeting type</label>
+              <Select v-model="participantSummaryFilters.type" :options="meetingTypes" option-label="label" option-value="value" placeholder="Meeting type" show-clear class="w-full" />
+            </div>
+          </div>
+
+          <div class="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Participation min</label>
+              <InputNumber v-model="participantSummaryFilters.participation_min" :min="0" :max="participantSummaryInfo.heldMeetings || undefined" show-buttons class="w-full" input-class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Participation max</label>
+              <InputNumber v-model="participantSummaryFilters.participation_max" :min="0" :max="participantSummaryInfo.heldMeetings || undefined" show-buttons class="w-full" input-class="w-full" />
+            </div>
+            <Button label="Reset" severity="secondary" outlined @click="clearParticipantSummaryFilters" />
+            <Button label="Apply" icon="pi pi-filter" class="!border-[#a83632] !bg-[#a83632] !text-white" :loading="participantSummaryLoading" @click="applyParticipantSummaryFilters" />
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-[#a83632]/20 bg-[#a83632]/5 px-4 py-3 text-sm text-gray-700">
+          Participation count is based on present attendance records in the selected range.
+          Example: <strong>2/4</strong> means a person was present for 2 out of 4 meetings held.
+        </div>
+
+        <DataTable
+          :value="participantSummaryRows"
+          lazy
+          paginator
+          :first="participantSummaryFirst"
+          :rows="participantSummaryRowsPerPage"
+          :total-records="totalParticipantSummaryRecords"
+          :rows-per-page-options="[10, 25, 50, 100]"
+          scrollable
+          scroll-height="520px"
+          table-style="min-width: 980px"
+          class="text-sm"
+          :loading="participantSummaryLoading"
+          @page="onParticipantSummaryPage"
+        >
+          <Column field="name" header="Name" style="min-width: 220px" />
+          <Column field="participationLabel" header="Participation" style="min-width: 140px">
+            <template #body="{ data }">
+              <span class="rounded-full bg-[#a83632]/10 px-3 py-1 text-sm font-semibold text-[#a83632]">
+                {{ data.participationLabel }}
+              </span>
+            </template>
+          </Column>
+          <Column field="absentCount" header="Absent" style="min-width: 110px" />
+          <Column field="personType" header="Type" style="min-width: 110px">
+            <template #body="{ data }">{{ displayValue(data.personType) }}</template>
+          </Column>
+          <Column field="churchName" header="Church" style="min-width: 180px" />
+          <Column field="fellowshipName" header="Fellowship" style="min-width: 180px" />
+          <Column field="cellName" header="Cell" style="min-width: 160px" />
+        </DataTable>
+      </div>
     </Dialog>
 
     <Dialog v-model:visible="completeWarningOpen" modal header="Complete this meeting?" class="w-[92vw] max-w-md">

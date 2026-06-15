@@ -9,7 +9,7 @@ export const useLocationsStore = defineStore('locations', {
   getters: {
     countryOptions: (state) => state.countries.map((country) => ({
       label: country.name,
-      value: country.value,
+      value: country.name,
     })),
   },
 
@@ -40,22 +40,30 @@ export const useLocationsStore = defineStore('locations', {
       }
     },
 
-    stateOptions(countryCode) {
-      const country = this.countries.find((item) => item.value === countryCode)
+    findCountry(countryValue) {
+      return this.countries.find((item) => item.name === countryValue || item.value === countryValue)
+    },
+
+    countryName(countryValue) {
+      return this.findCountry(countryValue)?.name || countryValue || ''
+    },
+
+    stateOptions(countryValue) {
+      const country = this.findCountry(countryValue)
 
       return (country?.states || []).map((state) => ({
         label: state.name,
-        value: state.value,
+        value: state.name,
       }))
     },
 
-    subdivisionOptions(countryCode, stateName) {
-      const country = this.countries.find((item) => item.value === countryCode)
-      const state = (country?.states || []).find((item) => item.value === stateName)
+    subdivisionOptions(countryValue, stateName) {
+      const country = this.findCountry(countryValue)
+      const state = (country?.states || []).find((item) => item.name === stateName || item.value === stateName)
 
       return (state?.subdivision || state?.subdivisions || []).map((subdivision) => ({
         label: subdivision.name,
-        value: subdivision.value,
+        value: subdivision.name,
       }))
     },
   },

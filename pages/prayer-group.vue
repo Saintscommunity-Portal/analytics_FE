@@ -29,6 +29,7 @@ const errorMessage = ref('')
 const formError = ref('')
 const dialogOpen = ref(false)
 const attendanceDialogOpen = ref(false)
+const participantSummaryOpen = ref(false)
 const dashboardChartsOpen = ref(true)
 const attendanceSearchOpen = ref(true)
 const defaultPrayerGroup = ref(null)
@@ -36,6 +37,8 @@ const records = ref([])
 const dashboard = ref(null)
 const selectedRecord = ref(null)
 const attendanceRows = ref([])
+const participantSummaryRows = ref([])
+const participantSummaryLoading = ref(false)
 const participantStatusFilter = ref('all')
 const participantOptions = ref([])
 const participantSearchLoading = ref(false)
@@ -62,6 +65,17 @@ const dashboardFilters = reactive({
   date_to: '',
 })
 
+const participantSummaryFilters = reactive({
+  date_from: '',
+  date_to: '',
+  church_id: null,
+  fellowship_id: null,
+  cell_id: null,
+  person_type: '',
+  participation_min: null,
+  participation_max: null,
+})
+
 const form = reactive({
   type: 'custom',
   title: '',
@@ -78,6 +92,21 @@ const attendanceForm = reactive({
 
 const first = ref(0)
 const rows = ref(10)
+const participantSummaryFirst = ref(0)
+const participantSummaryRowsPerPage = ref(10)
+const participantSummaryMeta = ref({
+  current_page: 1,
+  from: 0,
+  last_page: 1,
+  per_page: 10,
+  to: 0,
+  total: 0,
+})
+const participantSummaryInfo = ref({
+  heldWeeks: 0,
+  dateFrom: '',
+  dateTo: '',
+})
 
 const adminRole = computed(() => authStore.admin?.role || '')
 const isChurchPastor = computed(() => adminRole.value === 'church_pastor')
@@ -144,6 +173,7 @@ const tableRows = computed(() => {
 })
 
 const totalRecords = computed(() => meta.value?.total || 0)
+const totalParticipantSummaryRecords = computed(() => participantSummaryMeta.value?.total || 0)
 const hasFilters = computed(() => Object.values(filters).some((value) => value !== '' && value !== null))
 const dashboardTotals = computed(() => dashboard.value?.totals || {})
 const dashboardPercentages = computed(() => dashboard.value?.percentages || {})
@@ -224,6 +254,21 @@ function buildQuery(page = 1) {
 
   for (const [key, value] of Object.entries(allowedFilters)) {
     if (value !== '' && value !== null) {
+      query[key] = value
+    }
+  }
+
+  return query
+}
+
+function buildParticipantSummaryQuery(page = 1) {
+  const query = {
+    page,
+    per_page: participantSummaryRowsPerPage.value,
+  }
+
+  for (const [key, value] of Object.entries(participantSummaryFilters)) {
+    if (value !== '' && value !== null && value !== undefined) {
       query[key] = value
     }
   }
@@ -404,6 +449,73 @@ async function fetchDashboard() {
   } catch {
     dashboard.value = null
   }
+}
+
+async function fetchParticipantSummary(page = 1) {
+  participantSummaryLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await request('/prayer-participants/summary', {
+      method: 'GET',
+      query: buildParticipantSummaryQuery(page),
+    })
+
+    participantSummaryRows.value = Array.isArray(response?.data) ? response.data : []
+    participantSummaryMeta.value = {
+      ...participantSummaryMeta.value,
+      ...(response?.meta || {}),
+    }
+    participantSummaryInfo.value = {
+      ...participantSummaryInfo.value,
+      ...(response?.summary || {}),
+    }
+    participantSummaryRowsPerPage.value = Number(participantSummaryMeta.value.per_page || participantSummaryRowsPerPage.value)
+    participantSummaryFirst.value = ((Number(participantSummaryMeta.value.current_page) || page) - 1) * participantSummaryRowsPerPage.value
+  } catch (error) {
+    participantSummaryRows.value = []
+    errorMessage.value = error?.data?.message || error?.message || 'Unable to load participant summary.'
+  } finally {
+    participantSummaryLoading.value = false
+  }
+}
+
+function openParticipantSummary() {
+  participantSummaryFilters.date_from = dashboardFilters.date_from
+  participantSummaryFilters.date_to = dashboardFilters.date_to
+  participantSummaryFilters.church_id = filters.church_id
+  participantSummaryFilters.fellowship_id = filters.fellowship_id
+  participantSummaryFilters.cell_id = filters.cell_id
+  participantSummaryFilters.person_type = ''
+  participantSummaryFilters.participation_min = null
+  participantSummaryFilters.participation_max = null
+  participantSummaryFirst.value = 0
+  participantSummaryOpen.value = true
+  fetchParticipantSummary(1)
+}
+
+function applyParticipantSummaryFilters() {
+  participantSummaryFirst.value = 0
+  fetchParticipantSummary(1)
+}
+
+function clearParticipantSummaryFilters() {
+  participantSummaryFilters.date_from = dashboardFilters.date_from
+  participantSummaryFilters.date_to = dashboardFilters.date_to
+  participantSummaryFilters.church_id = null
+  participantSummaryFilters.fellowship_id = null
+  participantSummaryFilters.cell_id = null
+  participantSummaryFilters.person_type = ''
+  participantSummaryFilters.participation_min = null
+  participantSummaryFilters.participation_max = null
+  participantSummaryFirst.value = 0
+  fetchParticipantSummary(1)
+}
+
+function onParticipantSummaryPage(event) {
+  participantSummaryRowsPerPage.value = event.rows
+  participantSummaryFirst.value = event.first
+  fetchParticipantSummary(event.page + 1)
 }
 
 function resetForm() {
@@ -698,6 +810,13 @@ onMounted(async () => {
           icon="pi pi-plus"
           class="!border-[#a83632] !bg-[#a83632] !text-white hover:!border-[#922f2c] hover:!bg-[#922f2c] hover:!text-white"
           @click="openCreateDialog"
+        />
+        <Button
+          label="Participant summary"
+          icon="pi pi-table"
+          outlined
+          class="!border-[#a83632] !text-[#a83632]"
+          @click="openParticipantSummary"
         />
       </div>
     </div>
@@ -1040,6 +1159,169 @@ onMounted(async () => {
         </DataTable>
       </template>
     </Card>
+
+    <Dialog
+      v-model:visible="participantSummaryOpen"
+      modal
+      header="Participant summary"
+      :style="{ width: 'min(96vw, 1100px)' }"
+    >
+      <div class="space-y-4">
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="grid gap-3 md:grid-cols-4">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">From</label>
+              <InputText v-model="participantSummaryFilters.date_from" type="date" class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">To</label>
+              <InputText v-model="participantSummaryFilters.date_to" type="date" class="w-full" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Type</label>
+              <Select
+                v-model="participantSummaryFilters.person_type"
+                :options="[
+                  { label: 'Workers and members', value: '' },
+                  { label: 'Workers', value: 'worker' },
+                  { label: 'Members', value: 'member' },
+                ]"
+                option-label="label"
+                option-value="value"
+                class="w-full"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Held weeks</label>
+              <div class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-950">
+                {{ participantSummaryInfo.heldWeeks || 0 }} week{{ Number(participantSummaryInfo.heldWeeks || 0) === 1 ? '' : 's' }}
+              </div>
+            </div>
+          </div>
+
+          <div v-if="showBroadFilters" class="mt-3 grid gap-3 md:grid-cols-3">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Church</label>
+              <Select
+                v-model="participantSummaryFilters.church_id"
+                :options="churchOptions"
+                option-label="name"
+                option-value="id"
+                placeholder="Church"
+                show-clear
+                class="w-full"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Fellowship</label>
+              <Select
+                v-model="participantSummaryFilters.fellowship_id"
+                :options="fellowshipOptions"
+                option-label="name"
+                option-value="id"
+                placeholder="Fellowship"
+                show-clear
+                class="w-full"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Cell</label>
+              <Select
+                v-model="participantSummaryFilters.cell_id"
+                :options="cellOptions"
+                option-label="name"
+                option-value="id"
+                placeholder="Cell"
+                show-clear
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          <div class="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Participation min</label>
+              <InputNumber
+                v-model="participantSummaryFilters.participation_min"
+                :min="0"
+                :max="participantSummaryInfo.heldWeeks || undefined"
+                show-buttons
+                class="w-full"
+                input-class="w-full"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-semibold text-gray-900">Participation max</label>
+              <InputNumber
+                v-model="participantSummaryFilters.participation_max"
+                :min="0"
+                :max="participantSummaryInfo.heldWeeks || undefined"
+                show-buttons
+                class="w-full"
+                input-class="w-full"
+              />
+            </div>
+            <Button
+              label="Reset"
+              severity="secondary"
+              outlined
+              @click="clearParticipantSummaryFilters"
+            />
+            <Button
+              label="Apply"
+              icon="pi pi-filter"
+              class="!border-[#a83632] !bg-[#a83632] !text-white"
+              :loading="participantSummaryLoading"
+              @click="applyParticipantSummaryFilters"
+            />
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-[#a83632]/20 bg-[#a83632]/5 px-4 py-3 text-sm text-gray-700">
+          Participation count is based only on <strong>prayer_group</strong> records, grouped by week in the selected date range.
+          Example: <strong>2/4</strong> means present in 2 of 4 prayer group weeks held.
+        </div>
+
+        <DataTable
+          :value="participantSummaryRows"
+          lazy
+          paginator
+          :first="participantSummaryFirst"
+          :rows="participantSummaryRowsPerPage"
+          :total-records="totalParticipantSummaryRecords"
+          :rows-per-page-options="[10, 25, 50, 100]"
+          scrollable
+          scroll-height="520px"
+          table-style="min-width: 900px"
+          class="text-sm"
+          :loading="participantSummaryLoading"
+          @page="onParticipantSummaryPage"
+        >
+          <Column field="name" header="Name" style="min-width: 220px" />
+          <Column field="participationLabel" header="Participation" style="min-width: 140px">
+            <template #body="{ data }">
+              <span class="rounded-full bg-[#a83632]/10 px-3 py-1 text-sm font-semibold text-[#a83632]">
+                {{ data.participationLabel }}
+              </span>
+            </template>
+          </Column>
+          <Column field="personType" header="Type" style="min-width: 120px">
+            <template #body="{ data }">
+              {{ typeLabel(data.personType) }}
+            </template>
+          </Column>
+          <Column field="churchName" header="Church" style="min-width: 170px">
+            <template #body="{ data }">{{ data.churchName || '-' }}</template>
+          </Column>
+          <Column field="fellowshipName" header="Fellowship" style="min-width: 180px">
+            <template #body="{ data }">{{ data.fellowshipName || '-' }}</template>
+          </Column>
+          <Column field="cellName" header="Cell" style="min-width: 170px">
+            <template #body="{ data }">{{ data.cellName || '-' }}</template>
+          </Column>
+        </DataTable>
+      </div>
+    </Dialog>
 
     <Dialog
       v-model:visible="dialogOpen"
