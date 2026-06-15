@@ -1,4 +1,6 @@
 <script setup>
+import TableDownloadDialog from '~/components/TableDownloadDialog.vue'
+
 definePageMeta({
   middleware: 'auth',
   layout: 'admin',
@@ -10,6 +12,8 @@ const locationsStore = useLocationsStore()
 
 const loading = ref(true)
 const errorMessage = ref('')
+const downloadDialogOpen = ref(false)
+const filtersOpen = ref(true)
 const workers = ref([])
 const meta = ref({
   current_page: 1,
@@ -86,6 +90,12 @@ const tableRows = computed(() => {
 const totalRecords = computed(() => meta.value?.total || 0)
 const hasFilters = computed(() => Object.values(filters).some((value) => value))
 const entities = computed(() => authStore.entities || {})
+const downloadQuery = computed(() => {
+  const query = buildQuery(1)
+  delete query.page
+  delete query.per_page
+  return query
+})
 
 const churchOptions = computed(() => {
   return Array.isArray(entities.value.churches) ? entities.value.churches : []
@@ -282,15 +292,38 @@ onMounted(() => {
         </p>
       </div>
 
-      <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm">
-        <span class="font-semibold text-gray-950">{{ totalRecords }}</span>
-        <span class="ml-1 text-gray-500">workers found</span>
+      <div class="flex flex-col gap-3 sm:items-end">
+        <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm">
+          <span class="font-semibold text-gray-950">{{ totalRecords }}</span>
+          <span class="ml-1 text-gray-500">workers found</span>
+        </div>
+        <Button
+          label="Download"
+          icon="pi pi-cloud-download"
+          class="!border-[#a83632] !bg-[#a83632] !text-white hover:!border-[#922f2c] hover:!bg-[#922f2c] hover:!text-white"
+          @click="downloadDialogOpen = true"
+        />
       </div>
     </div>
 
     <Card class="border border-gray-200 bg-white shadow-sm">
       <template #content>
-        <div class="space-y-5">
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-3 text-left"
+          @click="filtersOpen = !filtersOpen"
+        >
+          <div>
+            <h2 class="m-0 text-sm font-semibold text-gray-950">Worker filters</h2>
+            <p class="m-0 mt-1 text-xs text-gray-500">Refine the worker list by identity, location, and assigned hierarchy.</p>
+          </div>
+          <i
+            class="pi text-sm text-gray-500 transition-transform"
+            :class="filtersOpen ? 'pi-chevron-up' : 'pi-chevron-down'"
+          />
+        </button>
+
+        <div v-if="filtersOpen" class="mt-5 space-y-5 border-t border-gray-100 pt-5">
           <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <span class="p-input-icon-left">
               <i class="pi pi-user" />
@@ -440,7 +473,7 @@ onMounted(() => {
               <Button
                 label="Apply filters"
                 icon="pi pi-filter"
-                class="!border-[#a83632] !bg-[#a83632] hover:!border-[#922f2c] hover:!bg-[#922f2c]"
+                class="!border-[#a83632] !bg-[#a83632] !text-white hover:!border-[#922f2c] hover:!bg-[#922f2c] hover:!text-white"
                 :loading="loading"
                 @click="applyFilters"
               />
@@ -520,9 +553,29 @@ onMounted(() => {
               </span>
             </template>
           </Column>
+          <Column header="Profile" frozen align-frozen="right" style="min-width: 130px">
+            <template #body="{ data }">
+              <Skeleton v-if="data.__loading" height="2rem" border-radius="8px" />
+              <NuxtLink
+                v-else
+                :to="`/workers/${data.id}`"
+                class="inline-flex items-center gap-2 rounded-md border border-[#a83632] bg-[#a83632] px-3 py-2 text-sm font-semibold text-white no-underline hover:border-[#922f2c] hover:bg-[#922f2c]"
+              >
+                <i class="pi pi-user text-xs" />
+                View
+              </NuxtLink>
+            </template>
+          </Column>
         </DataTable>
       </template>
     </Card>
+
+    <TableDownloadDialog
+      v-model:visible="downloadDialogOpen"
+      table-name="workers"
+      default-title="Workers export"
+      :query="downloadQuery"
+    />
   </section>
 </template>
 

@@ -30,3 +30,45 @@ body {
   background: #f9fafb;
   color: #111827;
 }
+
+.dark {
+  --p-primary-color: #a83632;
+  --p-primary-hover-color: #c64a45;
+  --p-primary-active-color: #dc5f59;
+  --p-focus-ring-color: rgb(168 54 50 / 40%);
+}
+
+.dark html,
+.dark body,
+html.dark,
+html.dark body {
+  background: #030712;
+  color: #f9fafb;
+}
+
+.dark .p-card,
+.dark .p-datatable,
+.dark .p-datatable-table,
+.dark .p-paginator,
+.dark .p-select,
+.dark .p-inputtext,
+.dark .p-textarea {
+  background: #111827;
+  color: #f9fafb;
+}
+
+.dark .p-card,
+.dark .p-datatable,
+.dark .p-paginator {
+  border-color: #1f2937;
+}
+
+.dark .p-datatable-thead > tr > th,
+.dark .p-datatable-tbody > tr {
+  background: #111827;
+  color: #f9fafb;
+}
+
+.dark .p-datatable-tbody > tr:hover {
+  background: #1f2937;
+}

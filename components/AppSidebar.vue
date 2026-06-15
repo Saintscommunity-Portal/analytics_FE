@@ -22,23 +22,48 @@ const menuItems = [
     to: '/members',
     icon: 'pi pi-id-card',
   },
+  {
+    label: 'Prayer Group',
+    to: '/prayer-group',
+    icon: 'pi pi-heart',
+  },
+  {
+    label: 'Study Group',
+    to: '/study-group',
+    icon: 'pi pi-book',
+  },
+  {
+    label: 'Church Meetings',
+    to: '/church-meetings',
+    icon: 'pi pi-calendar',
+  },
+  {
+    label: 'Outreach',
+    to: '/outreaches',
+    icon: 'pi pi-send',
+  },
+  {
+    label: 'Follow Ups',
+    to: '/followups',
+    icon: 'pi pi-comments',
+  },
 ]
 </script>
 
 <template>
   <aside
     :class="[
-      'hidden min-h-screen shrink-0 border-r border-gray-200 bg-white transition-all duration-200 lg:flex lg:flex-col',
+      'hidden min-h-screen shrink-0 border-r border-gray-200 bg-white transition-all duration-200 dark:border-gray-800 dark:bg-gray-950 lg:flex lg:flex-col',
       collapsed ? 'w-20' : 'w-72',
     ]"
   >
-    <div class="flex h-16 items-center gap-3 border-b border-gray-100 px-4">
+    <div class="flex h-16 items-center gap-3 border-b border-gray-100 px-4 dark:border-gray-800">
       <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#a83632] text-sm font-bold text-white">
         SCC
       </div>
       <div v-if="!collapsed" class="min-w-0">
-        <p class="m-0 truncate text-sm font-semibold text-gray-950">SCC Analytics</p>
-        <p class="m-0 truncate text-xs text-gray-500">Admin portal</p>
+        <p class="m-0 truncate text-sm font-semibold text-gray-950 dark:text-white">SCC Analytics</p>
+        <p class="m-0 truncate text-xs text-gray-500 dark:text-gray-400">Admin portal</p>
       </div>
     </div>
 
@@ -47,8 +72,8 @@ const menuItems = [
         v-for="item in menuItems"
         :key="item.to"
         :to="item.to"
-        class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 no-underline transition hover:bg-gray-50 hover:text-gray-950"
-        active-class="!bg-[#a83632]/10 !text-[#a83632]"
+        class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 no-underline transition hover:bg-gray-50 hover:text-gray-950 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white"
+        active-class="!bg-[#a83632]/10 !text-[#a83632] dark:!bg-[#a83632]/20 dark:!text-[#f2b3af]"
       >
         <i :class="[item.icon, 'text-base']" />
         <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
