@@ -69,6 +69,7 @@ const cellOptions = computed(() => {
   return source.flatMap((fellowship) => (fellowship.cells || []).map((cell) => ({ label: cell.name, value: cell.id })))
 })
 const totals = computed(() => dashboard.value?.totals || {})
+const dailyRows = computed(() => listFrom(dashboard.value?.daily))
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -110,14 +111,21 @@ const workerChartData = computed(() => ({
   }],
 }))
 const dailyChartData = computed(() => ({
-  labels: (dashboard.value?.daily || []).map((row) => displayDate(row.date)),
+  labels: dailyRows.value.map((row) => displayDate(row.date)),
   datasets: [{
     label: 'Follow up reports',
-    data: (dashboard.value?.daily || []).map((row) => Number(row.total_reports_sent || row.total_followup_activities || 0)),
+    data: dailyRows.value.map((row) => Number(row.total_reports_sent || row.total_followup_activities || 0)),
     borderColor: '#a83632',
     backgroundColor: '#a83632',
   }],
 }))
+
+function listFrom(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.data)) return value.data
+  if (value && typeof value === 'object') return Object.values(value)
+  return []
+}
 
 function displayValue(value) {
   if (value === null || value === undefined || value === '') return '-'
@@ -317,7 +325,7 @@ onMounted(async () => {
 
     <Card class="border border-gray-200 bg-white shadow-sm">
       <template #content>
-        <DataTable :value="followups" :loading="loading" paginator lazy :rows="meta.per_page || 20" :total-records="meta.total || 0" row-hover @page="fetchFollowups($event.page + 1)">
+        <DataTable class="followups-table text-sm" :value="followups" :loading="loading" paginator lazy :rows="meta.per_page || 20" :total-records="meta.total || 0" row-hover @page="fetchFollowups($event.page + 1)">
           <Column field="timeFrom" header="Started"><template #body="{ data }">{{ displayDate(data.timeFrom) }}</template></Column>
           <Column field="timeTo" header="Ended"><template #body="{ data }">{{ displayDate(data.timeTo) }}</template></Column>
           <Column field="workerName" header="Worker" />
@@ -404,7 +412,7 @@ onMounted(async () => {
           scrollable
           scroll-height="520px"
           table-style="min-width: 1120px"
-          class="text-sm"
+          class="followups-table text-sm"
           :loading="workerSummaryLoading"
           @page="onWorkerSummaryPage"
         >
@@ -438,3 +446,13 @@ onMounted(async () => {
     </Dialog>
   </section>
 </template>
+
+<style scoped>
+:global(.dark) :deep(.followups-table .p-datatable-tbody > tr > td),
+:global(.dark) :deep(.followups-table .p-datatable-tbody > tr > td span:not(.p-tag-label)),
+:global(.dark) :deep(.followups-table .p-datatable-tbody > tr > td p),
+:global(.dark) :deep(.followups-table .p-datatable-tbody > tr > td div),
+:global(.dark) :deep(.followups-table .p-datatable-tbody > tr > td strong) {
+  color: #f9fafb !important;
+}
+</style>

@@ -133,6 +133,8 @@ const reportCountsTotal = computed(() => (
   + Number(totals.value.first_timers_count || 0)
   + Number(totals.value.childrens_count || 0)
 ))
+const meetingTypeRows = computed(() => listFrom(dashboard.value?.meetingTypes))
+const dailyRows = computed(() => listFrom(dashboard.value?.daily))
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -165,30 +167,37 @@ const reportCountChartData = computed(() => ({
   }],
 }))
 const meetingTypeChartData = computed(() => ({
-  labels: (dashboard.value?.meetingTypes || []).map((row) => displayValue(row.meeting_type)),
+  labels: meetingTypeRows.value.map((row) => displayValue(row.meeting_type)),
   datasets: [{
     label: 'Reported attendance',
-    data: (dashboard.value?.meetingTypes || []).map((row) => Number(row.total_reported_attendance || 0)),
+    data: meetingTypeRows.value.map((row) => Number(row.total_reported_attendance || 0)),
     backgroundColor: '#a83632',
   }],
 }))
 const dailyAttendanceChartData = computed(() => ({
-  labels: (dashboard.value?.daily || []).map((row) => displayDate(row.date)),
+  labels: dailyRows.value.map((row) => displayDate(row.date)),
   datasets: [
     {
       label: 'Reported',
-      data: (dashboard.value?.daily || []).map((row) => Number(row.total_reported_attendance || 0)),
+      data: dailyRows.value.map((row) => Number(row.total_reported_attendance || 0)),
       borderColor: '#a83632',
       backgroundColor: '#a83632',
     },
     {
       label: 'Physical',
-      data: (dashboard.value?.daily || []).map((row) => Number(row.total_physical_attendance || 0)),
+      data: dailyRows.value.map((row) => Number(row.total_physical_attendance || 0)),
       borderColor: '#2563eb',
       backgroundColor: '#2563eb',
     },
   ],
 }))
+
+function listFrom(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.data)) return value.data
+  if (value && typeof value === 'object') return Object.values(value)
+  return []
+}
 
 function displayValue(value) {
   if (!value) return '-'
@@ -464,7 +473,7 @@ onMounted(fetchMeetings)
 
     <Card class="border border-gray-200 shadow-sm">
       <template #content>
-        <DataTable :value="meetings" :loading="loading" paginator lazy :rows="meta.per_page || 10" :total-records="meta.total || 0" @page="fetchMeetings($event.page + 1)">
+        <DataTable class="church-meetings-table text-sm" :value="meetings" :loading="loading" paginator lazy :rows="meta.per_page || 10" :total-records="meta.total || 0" @page="fetchMeetings($event.page + 1)">
           <Column field="meetingName" header="Meeting" />
           <Column field="type" header="Type"><template #body="{ data }">{{ displayValue(data.type) }}</template></Column>
           <Column field="churchName" header="Church" />
@@ -586,7 +595,7 @@ onMounted(fetchMeetings)
           scrollable
           scroll-height="520px"
           table-style="min-width: 980px"
-          class="text-sm"
+          class="church-meetings-table text-sm"
           :loading="participantSummaryLoading"
           @page="onParticipantSummaryPage"
         >
@@ -627,3 +636,13 @@ onMounted(fetchMeetings)
 
   </section>
 </template>
+
+<style scoped>
+:global(.dark) :deep(.church-meetings-table .p-datatable-tbody > tr > td),
+:global(.dark) :deep(.church-meetings-table .p-datatable-tbody > tr > td span:not(.p-tag-label)),
+:global(.dark) :deep(.church-meetings-table .p-datatable-tbody > tr > td p),
+:global(.dark) :deep(.church-meetings-table .p-datatable-tbody > tr > td div),
+:global(.dark) :deep(.church-meetings-table .p-datatable-tbody > tr > td strong) {
+  color: #f9fafb !important;
+}
+</style>
