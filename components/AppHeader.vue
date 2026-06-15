@@ -32,6 +32,11 @@ const currentDate = computed(() => {
   }).format(now.value)
 })
 
+const adminRole = computed(() => {
+  const role = auth.admin.value?.role || 'admin'
+  return String(role).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+})
+
 const menuItems = computed(() => [
   {
     label: 'User profile',
@@ -123,7 +128,7 @@ onBeforeUnmount(() => {
             <span class="block max-w-36 truncate text-sm font-semibold text-gray-950 dark:text-white">
               {{ auth.adminName.value }}
             </span>
-            <span class="block text-xs text-gray-500 dark:text-gray-400">Admin</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400">{{ adminRole }}</span>
           </span>
           <i class="pi pi-angle-down text-xs text-gray-400 dark:text-gray-500" />
         </button>
