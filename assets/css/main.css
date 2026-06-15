@@ -31,6 +31,12 @@ body {
   color: #111827;
 }
 
+.p-datatable-tbody > tr > td,
+.p-datatable-tbody > tr > td span:not(.p-tag-label),
+.p-datatable-tbody > tr > td a {
+  color: #111827;
+}
+
 .dark {
   --p-primary-color: #a83632;
   --p-primary-hover-color: #c64a45;
@@ -71,4 +77,60 @@ html.dark body {
 
 .dark .p-datatable-tbody > tr:hover {
   background: #1f2937;
+}
+
+.dark .p-datatable-tbody > tr:hover > td,
+.dark .p-datatable-tbody > tr:hover > td span:not(.p-tag-label),
+.dark .p-datatable-tbody > tr:hover > td a {
+  color: #111827 !important;
+}
+
+.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: #030712 !important;
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: #1f2937 !important;
+}
+
+.dark .text-gray-950,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700 {
+  color: #f9fafb !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 35%) !important;
+}
+
+.dark .p-dialog,
+.dark .p-dialog-content,
+.dark .p-dialog-header,
+.dark .p-dialog-footer,
+.dark .p-popover,
+.dark .p-menu,
+.dark .p-select-overlay,
+.dark .p-multiselect-overlay {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #1f2937;
+}
+
+.dark .p-select-option,
+.dark .p-multiselect-option {
+  color: #f9fafb;
 }
