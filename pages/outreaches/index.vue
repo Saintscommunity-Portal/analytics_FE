@@ -73,6 +73,7 @@ const cellOptions = computed(() => {
   return source.flatMap((fellowship) => (fellowship.cells || []).map((cell) => ({ label: cell.name, value: cell.id })))
 })
 const totals = computed(() => dashboard.value?.totals || {})
+const dailyRows = computed(() => listFrom(dashboard.value?.daily))
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -115,16 +116,23 @@ const participationChartData = computed(() => ({
   }],
 }))
 const dailyChartData = computed(() => ({
-  labels: (dashboard.value?.daily || []).map((row) => displayDate(row.date)),
+  labels: dailyRows.value.map((row) => displayDate(row.date)),
   datasets: [
     {
       label: 'Outreaches',
-      data: (dashboard.value?.daily || []).map((row) => Number(row.total_outreaches || 0)),
+      data: dailyRows.value.map((row) => Number(row.total_outreaches || 0)),
       borderColor: '#a83632',
       backgroundColor: '#a83632',
     },
   ],
 }))
+
+function listFrom(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.data)) return value.data
+  if (value && typeof value === 'object') return Object.values(value)
+  return []
+}
 
 function displayValue(value) {
   if (value === null || value === undefined || value === '') return '-'
@@ -335,7 +343,7 @@ onMounted(async () => {
 
     <Card class="border border-gray-200 bg-white shadow-sm">
       <template #content>
-        <DataTable :value="outreaches" :loading="loading" paginator lazy :rows="meta.per_page || 20" :total-records="meta.total || 0" row-hover @page="fetchOutreaches($event.page + 1)">
+        <DataTable class="outreaches-table text-sm" :value="outreaches" :loading="loading" paginator lazy :rows="meta.per_page || 20" :total-records="meta.total || 0" row-hover @page="fetchOutreaches($event.page + 1)">
           <Column field="date" header="Date"><template #body="{ data }">{{ displayDate(data.date) }}</template></Column>
           <Column field="timeStarted" header="Time" />
           <Column field="locationCovered" header="Location" />
@@ -426,7 +434,7 @@ onMounted(async () => {
           scrollable
           scroll-height="520px"
           table-style="min-width: 1120px"
-          class="text-sm"
+          class="outreaches-table text-sm"
           :loading="workerSummaryLoading"
           @page="onWorkerSummaryPage"
         >
@@ -458,3 +466,13 @@ onMounted(async () => {
     </Dialog>
   </section>
 </template>
+
+<style scoped>
+:global(.dark) :deep(.outreaches-table .p-datatable-tbody > tr > td),
+:global(.dark) :deep(.outreaches-table .p-datatable-tbody > tr > td span:not(.p-tag-label)),
+:global(.dark) :deep(.outreaches-table .p-datatable-tbody > tr > td p),
+:global(.dark) :deep(.outreaches-table .p-datatable-tbody > tr > td div),
+:global(.dark) :deep(.outreaches-table .p-datatable-tbody > tr > td strong) {
+  color: #f9fafb !important;
+}
+</style>

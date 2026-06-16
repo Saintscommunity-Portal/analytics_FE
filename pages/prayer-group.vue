@@ -1293,7 +1293,7 @@ onMounted(async () => {
           scrollable
           scroll-height="520px"
           table-style="min-width: 900px"
-          class="text-sm"
+          class="prayer-records-table text-sm"
           :loading="participantSummaryLoading"
           @page="onParticipantSummaryPage"
         >
@@ -1513,7 +1513,7 @@ onMounted(async () => {
         <DataTable
           :value="displayedAttendance"
           data-key="id"
-          class="text-sm"
+          class="prayer-records-table text-sm"
           table-style="min-width: 760px"
         >
           <Column field="personName" header="Person">
@@ -1630,6 +1630,23 @@ onMounted(async () => {
   background: #a83632;
   border-color: #a83632;
   color: #ffffff;
+}
+
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td),
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td span:not(.p-tag):not(.p-tag-label):not(.record-title-pill)),
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td p),
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td div),
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td strong) {
+  color: #f9fafb !important;
+}
+
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td),
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td span:not(.p-tag):not(.p-tag-label):not(.record-title-pill)),
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td p),
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td div),
+:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td strong) {
+  background: #111827;
+  color: #f9fafb !important;
 }
 
 :deep(.attendance-toggle .p-togglebutton-checked) {

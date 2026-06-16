@@ -45,9 +45,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase:
-        process.env.API_BASE ||
-        "https://analyticsbe-production.up.railway.app/api/v1",
+      apiBase: process.env.API_BASE || "http://127.0.0.1:8000/api/v1",
     },
   },
 });
