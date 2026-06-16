@@ -79,10 +79,32 @@ html.dark body {
   background: #1f2937;
 }
 
+.dark .p-datatable-tbody > tr > td,
+.dark .p-datatable-tbody > tr > td span:not(.p-tag-label),
+.dark .p-datatable-tbody > tr > td p,
+.dark .p-datatable-tbody > tr > td div,
+.dark .p-datatable-tbody > tr > td strong,
+.dark .p-datatable-tbody > tr > td a {
+  color: #f9fafb !important;
+}
+
 .dark .p-datatable-tbody > tr:hover > td,
 .dark .p-datatable-tbody > tr:hover > td span:not(.p-tag-label),
 .dark .p-datatable-tbody > tr:hover > td a {
-  color: #111827 !important;
+  color: #f9fafb !important;
+}
+
+.dark .members-table .p-datatable-tbody > tr > td,
+.dark .members-table .p-datatable-tbody > tr > td *:not(.p-button):not(.p-button *):not(.p-tag):not(.p-tag *),
+.dark .prayer-records-table .p-datatable-tbody > tr > td,
+.dark .prayer-records-table .p-datatable-tbody > tr > td *:not(.p-button):not(.p-button *):not(.p-tag):not(.p-tag *):not(.record-title-pill),
+.dark .church-meetings-table .p-datatable-tbody > tr > td,
+.dark .church-meetings-table .p-datatable-tbody > tr > td *:not(.p-button):not(.p-button *):not(.p-tag):not(.p-tag *),
+.dark .outreaches-table .p-datatable-tbody > tr > td,
+.dark .outreaches-table .p-datatable-tbody > tr > td *:not(.p-button):not(.p-button *):not(.p-tag):not(.p-tag *),
+.dark .followups-table .p-datatable-tbody > tr > td,
+.dark .followups-table .p-datatable-tbody > tr > td *:not(.p-button):not(.p-button *):not(.p-tag):not(.p-tag *) {
+  color: #f9fafb !important;
 }
 
 .dark .bg-white {

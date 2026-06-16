@@ -839,17 +839,21 @@ onMounted(() => {
   color: #ffffff;
 }
 
-:global(.dark) :deep(.members-table .p-datatable-tbody > tr > td) {
-  color: #f9fafb;
-}
-
-:global(.dark) :deep(.members-table .p-datatable-tbody > tr > td span) {
-  color: #f9fafb;
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr > td),
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr > td span),
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr > td p),
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr > td div),
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr > td strong) {
+  color: #f9fafb !important;
 }
 
 :global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td),
-:global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td span) {
-  color: #111827;
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td span),
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td p),
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td div),
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td strong) {
+  background: #111827;
+  color: #f9fafb !important;
 }
 
 :deep(.member-filter-control) {
