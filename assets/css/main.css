@@ -76,7 +76,11 @@ html.dark body {
 }
 
 .dark .p-datatable-tbody > tr:hover {
-  background: #1f2937;
+  background: #1f2937 !important;
+}
+
+.dark .p-datatable-tbody > tr:hover > td {
+  background: #1f2937 !important;
 }
 
 .dark .p-datatable-tbody > tr > td,
@@ -92,6 +96,13 @@ html.dark body {
 .dark .p-datatable-tbody > tr:hover > td span:not(.p-tag-label),
 .dark .p-datatable-tbody > tr:hover > td a {
   color: #f9fafb !important;
+}
+
+.dark .workers-table .p-datatable-tbody > tr:hover,
+.dark .workers-table .p-datatable-tbody > tr:hover > td,
+.dark .members-table .p-datatable-tbody > tr:hover,
+.dark .members-table .p-datatable-tbody > tr:hover > td {
+  background: #1f2937 !important;
 }
 
 .dark .members-table .p-datatable-tbody > tr > td,

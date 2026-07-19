@@ -274,6 +274,21 @@ onMounted(async () => {
 
     <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
 
+    <Card class="border border-gray-200 bg-white shadow-sm">
+      <template #content>
+        <div class="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
+          <InputText v-model="filters.from_date" type="date" />
+          <InputText v-model="filters.to_date" type="date" />
+          <Select v-model="filters.church_id" :options="churchOptions" option-label="label" option-value="value" placeholder="Church" show-clear />
+          <Select v-model="filters.fellowship_id" :options="fellowshipOptions" option-label="label" option-value="value" placeholder="Fellowship" show-clear />
+          <Select v-model="filters.cell_id" :options="cellOptions" option-label="label" option-value="value" placeholder="Cell" show-clear />
+          <Select v-model="filters.worker_id" :options="workerOptions" :loading="workersLoading" option-label="label" option-value="value" placeholder="Worker" show-clear />
+          <Select v-model="filters.activity_type" :options="activityOptions" option-label="label" option-value="value" placeholder="Activity" show-clear />
+          <Button label="Apply" class="!border-[#a83632] !bg-[#a83632] !text-white" @click="fetchFollowups()" />
+        </div>
+      </template>
+    </Card>
+
     <div class="grid gap-4 md:grid-cols-4">
       <Card class="border border-gray-200 shadow-sm"><template #content><p class="m-0 text-sm text-gray-500">Activities</p><h2 class="m-0 mt-2 text-2xl font-semibold text-gray-950">{{ totals.total_followup_activities || 0 }}</h2></template></Card>
       <Card class="border border-gray-200 shadow-sm"><template #content><p class="m-0 text-sm text-gray-500">Reports</p><h2 class="m-0 mt-2 text-2xl font-semibold text-[#a83632]">{{ totals.total_reports_sent || 0 }}</h2></template></Card>
@@ -307,21 +322,6 @@ onMounted(async () => {
         </template>
       </Card>
     </div>
-
-    <Card class="border border-gray-200 bg-white shadow-sm">
-      <template #content>
-        <div class="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
-          <InputText v-model="filters.from_date" type="date" />
-          <InputText v-model="filters.to_date" type="date" />
-          <Select v-model="filters.church_id" :options="churchOptions" option-label="label" option-value="value" placeholder="Church" show-clear />
-          <Select v-model="filters.fellowship_id" :options="fellowshipOptions" option-label="label" option-value="value" placeholder="Fellowship" show-clear />
-          <Select v-model="filters.cell_id" :options="cellOptions" option-label="label" option-value="value" placeholder="Cell" show-clear />
-          <Select v-model="filters.worker_id" :options="workerOptions" :loading="workersLoading" option-label="label" option-value="value" placeholder="Worker" show-clear />
-          <Select v-model="filters.activity_type" :options="activityOptions" option-label="label" option-value="value" placeholder="Activity" show-clear />
-          <Button label="Apply" class="!border-[#a83632] !bg-[#a83632] !text-white" @click="fetchFollowups()" />
-        </div>
-      </template>
-    </Card>
 
     <Card class="border border-gray-200 bg-white shadow-sm">
       <template #content>

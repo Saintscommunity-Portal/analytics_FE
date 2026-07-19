@@ -45,7 +45,7 @@ const filters = reactive({
   phone_number: '',
   gender: '',
   email: '',
-  department: '',
+  department_id: '',
   date_of_birth_from: '',
   date_of_birth_to: '',
   state: '',
@@ -58,6 +58,12 @@ const filters = reactive({
 
 const first = ref(0)
 const rows = ref(10)
+const departmentOptions = ref([])
+const departmentsLoading = ref(false)
+const genderOptions = [
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+]
 
 const baseColumns = [
   { field: 'firstName', header: 'First name' },
@@ -287,6 +293,36 @@ async function fetchWorkers(page = 1) {
   }
 }
 
+async function fetchDepartments() {
+  if (!filters.church_id) {
+    departmentOptions.value = []
+    return
+  }
+
+  departmentsLoading.value = true
+
+  try {
+    const response = await request('/departments', {
+      method: 'GET',
+      query: {
+        church_id: filters.church_id,
+      },
+    })
+
+    departmentOptions.value = Array.isArray(response?.data)
+      ? response.data.map((department) => ({
+          label: department.label || department.name,
+          value: department.value || department.id,
+          churchId: department.churchId,
+        }))
+      : []
+  } catch {
+    departmentOptions.value = []
+  } finally {
+    departmentsLoading.value = false
+  }
+}
+
 async function fetchDashboard() {
   dashboardLoading.value = true
 
@@ -331,6 +367,8 @@ function clearFilters() {
 watch(() => filters.church_id, () => {
   filters.fellowship_id = null
   filters.cell_id = null
+  filters.department_id = ''
+  fetchDepartments()
 })
 
 watch(() => filters.fellowship_id, () => {
@@ -348,6 +386,7 @@ watch(() => filters.state, () => {
 
 onMounted(() => {
   locationsStore.fetchCountries()
+  fetchDepartments()
   fetchWorkers()
   fetchDashboard()
 })
@@ -437,17 +476,25 @@ onMounted(() => {
                 @keyup.enter="applyFilters"
               />
             </span>
-            <InputText
+            <Select
               v-model="filters.gender"
+              :options="genderOptions"
+              option-label="label"
+              option-value="value"
               class="w-full"
               placeholder="Gender"
-              @keyup.enter="applyFilters"
+              show-clear
             />
-            <InputText
-              v-model="filters.department"
+            <Select
+              v-model="filters.department_id"
+              :options="departmentOptions"
+              option-label="label"
+              option-value="value"
               class="w-full"
               placeholder="Department"
-              @keyup.enter="applyFilters"
+              show-clear
+              :loading="departmentsLoading"
+              :disabled="!filters.church_id"
             />
             <InputText
               v-model="filters.date_of_birth_from"
@@ -753,6 +800,11 @@ onMounted(() => {
 
 :global(.dark) :deep(.workers-table .p-datatable-tbody > tr:hover > td),
 :global(.dark) :deep(.workers-table .p-datatable-tbody > tr:hover > td span:not(.p-tag-label)) {
-  color: #111827;
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+:global(.dark) :deep(.workers-table .p-datatable-tbody > tr:hover > td *:not(.p-button):not(.p-button *):not(.p-tag):not(.p-tag *)) {
+  color: #f9fafb !important;
 }
 </style>

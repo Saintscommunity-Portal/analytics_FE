@@ -7,7 +7,7 @@ export default defineNuxtRouteMiddleware(async () => {
     return navigateTo('/login')
   }
 
-  if (!auth.admin) {
+  if (!auth.admin || !auth.initialized || !auth.hasRequiredHierarchy()) {
     try {
       await auth.refreshAdmin()
     } catch {
