@@ -62,6 +62,10 @@ const first = ref(0)
 const rows = ref(10)
 const sortField = ref('created_at')
 const sortOrder = ref(-1)
+const genderOptions = [
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+]
 
 const baseColumns = [
   { field: 'fullName', header: 'Full name', sortable: true },
@@ -481,7 +485,9 @@ onMounted(() => {
             />
             <Select
               v-model="filters.gender"
-              :options="['male', 'female']"
+              :options="genderOptions"
+              option-label="label"
+              option-value="value"
               placeholder="Gender"
               show-clear
               class="member-filter-select w-full"
@@ -852,7 +858,11 @@ onMounted(() => {
 :global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td p),
 :global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td div),
 :global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td strong) {
-  background: #111827;
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+:global(.dark) :deep(.members-table .p-datatable-tbody > tr:hover > td *:not(.p-button):not(.p-button *):not(.p-tag):not(.p-tag *)) {
   color: #f9fafb !important;
 }
 

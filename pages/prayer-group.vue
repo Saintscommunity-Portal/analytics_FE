@@ -9,40 +9,49 @@ import {
   LineElement,
   PointElement,
   Tooltip,
-} from 'chart.js'
-import { Bar, Doughnut, Line } from 'vue-chartjs'
+} from "chart.js";
+import { Bar, Doughnut, Line } from "vue-chartjs";
 
-ChartJS.register(ArcElement, BarElement, CategoryScale, Legend, LinearScale, LineElement, PointElement, Tooltip)
+ChartJS.register(
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip,
+);
 
 definePageMeta({
-  middleware: 'auth',
-  layout: 'admin',
-})
+  middleware: "auth",
+  layout: "admin",
+});
 
-const { request } = useAdminApi()
-const authStore = useAuthStore()
+const { request } = useAdminApi();
+const authStore = useAuthStore();
 
-const loading = ref(true)
-const saving = ref(false)
-const completingId = ref(null)
-const errorMessage = ref('')
-const formError = ref('')
-const dialogOpen = ref(false)
-const attendanceDialogOpen = ref(false)
-const participantSummaryOpen = ref(false)
-const dashboardChartsOpen = ref(true)
-const attendanceSearchOpen = ref(true)
-const defaultPrayerGroup = ref(null)
-const records = ref([])
-const dashboard = ref(null)
-const selectedRecord = ref(null)
-const attendanceRows = ref([])
-const participantSummaryRows = ref([])
-const participantSummaryLoading = ref(false)
-const participantStatusFilter = ref('all')
-const participantOptions = ref([])
-const participantSearchLoading = ref(false)
-const participantSearchTerm = ref('')
+const loading = ref(true);
+const saving = ref(false);
+const completingId = ref(null);
+const errorMessage = ref("");
+const formError = ref("");
+const dialogOpen = ref(false);
+const attendanceDialogOpen = ref(false);
+const participantSummaryOpen = ref(false);
+const dashboardChartsOpen = ref(true);
+const attendanceSearchOpen = ref(true);
+const defaultPrayerGroup = ref(null);
+const records = ref([]);
+const dashboard = ref(null);
+const selectedRecord = ref(null);
+const attendanceRows = ref([]);
+const participantSummaryRows = ref([]);
+const participantSummaryLoading = ref(false);
+const participantStatusFilter = ref("all");
+const participantOptions = ref([]);
+const participantSearchLoading = ref(false);
+const participantSearchTerm = ref("");
 const meta = ref({
   current_page: 1,
   from: 0,
@@ -50,50 +59,49 @@ const meta = ref({
   per_page: 10,
   to: 0,
   total: 0,
-})
+});
 
 const filters = reactive({
-  type: '',
-  date: '',
+  type: "",
+  date: "",
   church_id: null,
   fellowship_id: null,
   cell_id: null,
-})
+});
 
 const dashboardFilters = reactive({
-  date_from: '',
-  date_to: '',
-})
+  from_month: "",
+  to_month: "",
+});
 
 const participantSummaryFilters = reactive({
-  date_from: '',
-  date_to: '',
+  date_from: "",
+  date_to: "",
   church_id: null,
   fellowship_id: null,
   cell_id: null,
-  person_type: '',
+  person_type: "",
   participation_min: null,
   participation_max: null,
-})
+});
 
 const form = reactive({
-  type: 'custom',
-  title: '',
-  leader_name: '',
-  time_started: '',
-  time_ended: '',
-  participants: '',
-})
+  type: "custom",
+  title: "",
+  leader_name: "",
+  time_started: "",
+  time_ended: "",
+});
 
 const attendanceForm = reactive({
   participant: null,
-  arrival_status: 'early',
-})
+  arrival_status: "early",
+});
 
-const first = ref(0)
-const rows = ref(10)
-const participantSummaryFirst = ref(0)
-const participantSummaryRowsPerPage = ref(10)
+const first = ref(0);
+const rows = ref(10);
+const participantSummaryFirst = ref(0);
+const participantSummaryRowsPerPage = ref(10);
 const participantSummaryMeta = ref({
   current_page: 1,
   from: 0,
@@ -101,199 +109,356 @@ const participantSummaryMeta = ref({
   per_page: 10,
   to: 0,
   total: 0,
-})
+});
 const participantSummaryInfo = ref({
   heldWeeks: 0,
-  dateFrom: '',
-  dateTo: '',
-})
+  dateFrom: "",
+  dateTo: "",
+});
 
-const adminRole = computed(() => authStore.admin?.role || '')
-const isChurchPastor = computed(() => adminRole.value === 'church_pastor')
-const isPastor = computed(() => adminRole.value === 'pastor')
-const canCreateRegularVigil = computed(() => ['pastor', 'church_pastor'].includes(adminRole.value))
-const isPrayerGroupLeader = computed(() => Boolean(defaultPrayerGroup.value))
-const canViewDashboard = computed(() => ['admin', 'pastor', 'church_pastor', 'fellowship_leader', 'cell_leader'].includes(adminRole.value))
-const showBroadFilters = computed(() => isChurchPastor.value || authStore.admin?.role === 'pastor' || authStore.admin?.role === 'admin')
-const entities = computed(() => authStore.entities || {})
+const adminRole = computed(() => authStore.admin?.role || "");
+const isChurchPastor = computed(() => adminRole.value === "church_pastor");
+const isPastor = computed(() => adminRole.value === "pastor");
+const canCreateRegularVigil = computed(() =>
+  ["pastor", "church_pastor"].includes(adminRole.value),
+);
+const isPrayerGroupLeader = computed(() => Boolean(defaultPrayerGroup.value));
+const canViewDashboard = computed(() =>
+  [
+    "admin",
+    "pastor",
+    "church_pastor",
+    "fellowship_leader",
+    "cell_leader",
+  ].includes(adminRole.value),
+);
+const showBroadFilters = computed(
+  () =>
+    isChurchPastor.value ||
+    authStore.admin?.role === "pastor" ||
+    authStore.admin?.role === "admin",
+);
+const entities = computed(() => authStore.entities || {});
 
 const typeOptions = computed(() => {
-  const options = [
-    { label: 'Custom', value: 'custom' },
-  ]
+  const options = [{ label: "Custom", value: "custom" }];
 
   if (isPrayerGroupLeader.value) {
-    options.unshift({ label: 'Prayer group', value: 'prayer_group' })
+    options.unshift({ label: "Prayer group", value: "prayer_group" });
   }
 
   if (canCreateRegularVigil.value) {
-    options.push({ label: 'Regular vigil', value: 'regular_vigil' })
+    options.push({ label: "Regular vigil", value: "regular_vigil" });
   }
 
-  return options
-})
+  return options;
+});
 
 const filterTypeOptions = [
-  { label: 'Prayer group', value: 'prayer_group' },
-  { label: 'Regular vigil', value: 'regular_vigil' },
-  { label: 'Custom', value: 'custom' },
-]
+  { label: "Prayer group", value: "prayer_group" },
+  { label: "Regular vigil", value: "regular_vigil" },
+  { label: "Custom", value: "custom" },
+];
 
-const churchOptions = computed(() => Array.isArray(entities.value.churches) ? entities.value.churches : [])
+const churchOptions = computed(() =>
+  Array.isArray(entities.value.churches) ? entities.value.churches : [],
+);
 const fellowshipOptions = computed(() => {
   if (Array.isArray(entities.value.fellowships)) {
-    return entities.value.fellowships
+    return entities.value.fellowships;
   }
 
-  const selectedChurch = churchOptions.value.find((church) => church.id === filters.church_id)
-  const source = selectedChurch ? [selectedChurch] : churchOptions.value
+  const selectedChurch = churchOptions.value.find(
+    (church) => church.id === filters.church_id,
+  );
+  const source = selectedChurch ? [selectedChurch] : churchOptions.value;
 
-  return source.flatMap((church) => Array.isArray(church.fellowships) ? church.fellowships : [])
-})
+  return source.flatMap((church) =>
+    Array.isArray(church.fellowships) ? church.fellowships : [],
+  );
+});
 const cellOptions = computed(() => {
   if (Array.isArray(entities.value.cells)) {
-    return entities.value.cells
+    return entities.value.cells;
   }
 
-  const selectedFellowship = fellowshipOptions.value.find((fellowship) => fellowship.id === filters.fellowship_id)
-  const source = selectedFellowship ? [selectedFellowship] : fellowshipOptions.value
+  const selectedFellowship = fellowshipOptions.value.find(
+    (fellowship) => fellowship.id === filters.fellowship_id,
+  );
+  const source = selectedFellowship
+    ? [selectedFellowship]
+    : fellowshipOptions.value;
 
-  return source.flatMap((fellowship) => Array.isArray(fellowship.cells) ? fellowship.cells : [])
-})
+  return source.flatMap((fellowship) =>
+    Array.isArray(fellowship.cells) ? fellowship.cells : [],
+  );
+});
 
 const tableRows = computed(() => {
   if (loading.value) {
     return Array.from({ length: rows.value }, (_, index) => ({
       id: `loading-${index}`,
       __loading: true,
-    }))
+    }));
   }
 
-  return records.value
-})
+  return records.value;
+});
 
-const totalRecords = computed(() => meta.value?.total || 0)
-const totalParticipantSummaryRecords = computed(() => participantSummaryMeta.value?.total || 0)
-const hasFilters = computed(() => Object.values(filters).some((value) => value !== '' && value !== null))
-const dashboardTotals = computed(() => dashboard.value?.totals || {})
-const dashboardPercentages = computed(() => dashboard.value?.percentages || {})
-const dashboardRecordTypes = computed(() => normalizeList(dashboard.value?.recordTypes))
-const dashboardDaily = computed(() => normalizeList(dashboard.value?.daily))
-const presentAttendance = computed(() => attendanceRows.value.filter((row) => row.participationStatus === 'present'))
-const absentAttendance = computed(() => attendanceRows.value.filter((row) => row.participationStatus === 'absent'))
+const totalRecords = computed(() => meta.value?.total || 0);
+const totalParticipantSummaryRecords = computed(
+  () => participantSummaryMeta.value?.total || 0,
+);
+const hasDashboardFilters = computed(() =>
+  Boolean(dashboardFilters.from_month || dashboardFilters.to_month),
+);
+const hasFilters = computed(
+  () =>
+    Object.values(filters).some((value) => value !== "" && value !== null) ||
+    hasDashboardFilters.value,
+);
+const dashboardTotals = computed(() => dashboard.value?.totals || {});
+const dashboardPercentages = computed(() => dashboard.value?.percentages || {});
+const dashboardRecordTypes = computed(() =>
+  normalizeList(dashboard.value?.recordTypes),
+);
+const dashboardDaily = computed(() => normalizeList(dashboard.value?.daily));
+const presentAttendance = computed(() =>
+  attendanceRows.value.filter((row) => row.participationStatus === "present"),
+);
+const absentAttendance = computed(() =>
+  attendanceRows.value.filter((row) => row.participationStatus === "absent"),
+);
 const displayedAttendance = computed(() => {
-  if (participantStatusFilter.value === 'present') {
-    return presentAttendance.value
+  if (participantStatusFilter.value === "present") {
+    return presentAttendance.value;
   }
 
-  if (participantStatusFilter.value === 'absent') {
-    return absentAttendance.value
+  if (participantStatusFilter.value === "absent") {
+    return absentAttendance.value;
   }
 
-  return attendanceRows.value
-})
+  return attendanceRows.value;
+});
 const attendanceSummary = computed(() => ({
   present: presentAttendance.value.length,
   absent: absentAttendance.value.length,
-  workers: attendanceRows.value.filter((row) => row.personType === 'worker' && row.participationStatus === 'present').length,
-  members: attendanceRows.value.filter((row) => row.personType === 'member' && row.participationStatus === 'present').length,
-  early: presentAttendance.value.filter((row) => row.arrivalStatus === 'early').length,
-  late: presentAttendance.value.filter((row) => row.arrivalStatus === 'late').length,
-  regularDay: attendanceRows.value.filter((row) => row.attendanceGroup === 'regular_day').length,
-  otherDays: attendanceRows.value.filter((row) => row.attendanceGroup === 'other_days').length,
-}))
+  workers: attendanceRows.value.filter(
+    (row) =>
+      row.personType === "worker" && row.participationStatus === "present",
+  ).length,
+  members: attendanceRows.value.filter(
+    (row) =>
+      row.personType === "member" && row.participationStatus === "present",
+  ).length,
+  early: presentAttendance.value.filter((row) => row.arrivalStatus === "early")
+    .length,
+  late: presentAttendance.value.filter((row) => row.arrivalStatus === "late")
+    .length,
+  regularDay: attendanceRows.value.filter(
+    (row) => row.attendanceGroup === "regular_day",
+  ).length,
+  otherDays: attendanceRows.value.filter(
+    (row) => row.attendanceGroup === "other_days",
+  ).length,
+}));
 
 function displayDate(value) {
   if (!value) {
-    return '-'
+    return "-";
   }
 
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString();
+}
+
+function weekOrdinal(value) {
+  const ordinals = ["first", "second", "third", "fourth", "fifth"];
+  return (
+    ordinals[Math.max(0, Math.min(Number(value) - 1, ordinals.length - 1))] ||
+    "first"
+  );
+}
+
+function weekOfMonthLabel(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const week = Math.ceil(date.getDate() / 7);
+  const monthYear = new Intl.DateTimeFormat("en", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+
+  return `${weekOrdinal(week)} week of ${monthYear}`;
+}
+
+function prayerGroupTitle(day, date) {
+  const labelDay = day ? `${day} Prayer Group` : "Prayer Group";
+  const weekLabel = weekOfMonthLabel(date);
+
+  return weekLabel ? `${labelDay} - ${weekLabel}` : labelDay;
+}
+
+function legacyPrayerGroupDay(title) {
+  const match = String(title || "").match(/prayer\s*group\s*-\s*(.+)$/i);
+  return match?.[1]?.trim() || "";
+}
+
+function displayPrayerRecordTitle(record) {
+  if (record?.type !== "prayer_group") {
+    return record?.title || "-";
+  }
+
+  const day =
+    record?.prayerGroup?.day ||
+    legacyPrayerGroupDay(record?.title) ||
+    defaultPrayerGroup.value?.day ||
+    "";
+  return prayerGroupTitle(day, record?.timeStarted);
 }
 
 function typeLabel(value) {
-  return String(value || '').replace(/_/g, ' ')
+  return String(value || "").replace(/_/g, " ");
 }
 
 function attendanceGroupLabel(row) {
   if (
-    row?.recordType === 'prayer_group'
-    && row?.prayerGroupId
-    && row?.expectedPrayerGroupId
-    && Number(row.prayerGroupId) !== Number(row.expectedPrayerGroupId)
+    row?.recordType === "prayer_group" &&
+    row?.prayerGroupId &&
+    row?.expectedPrayerGroupId &&
+    Number(row.prayerGroupId) !== Number(row.expectedPrayerGroupId)
   ) {
-    return 'Make Up'
+    return "Make Up";
   }
 
-  return typeLabel(row?.attendanceGroup) || '-'
+  return typeLabel(row?.attendanceGroup) || "-";
+}
+
+function participantKey(row) {
+  return `${row.personType}:${row.workerId || row.memberId}`;
+}
+
+function isExpectedPrayerWorker(row) {
+  return (
+    row.personType === "worker" &&
+    row.attendanceGroup === "regular_day" &&
+    selectedRecord.value?.type === "prayer_group" &&
+    Number(row.expectedPrayerGroupId || row.prayerGroupId) ===
+      Number(selectedRecord.value?.prayerGroupId)
+  );
 }
 
 function typeSeverity(value) {
-  if (value === 'prayer_group') return 'info'
-  if (value === 'regular_vigil') return 'warning'
-  return 'secondary'
+  if (value === "prayer_group") return "info";
+  if (value === "regular_vigil") return "warning";
+  return "secondary";
 }
 
 function statusSeverity(value) {
-  return value === 'completed' ? 'success' : 'warning'
+  return value === "completed" ? "success" : "warning";
 }
 
 function participationSeverity(value) {
-  return value === 'present' ? 'success' : 'danger'
+  return value === "present" ? "success" : "danger";
 }
 
 function buildQuery(page = 1) {
   const query = {
     page,
     per_page: rows.value,
-  }
+  };
 
   const allowedFilters = showBroadFilters.value
     ? filters
-    : { date: filters.date }
+    : { date: filters.date };
 
   for (const [key, value] of Object.entries(allowedFilters)) {
-    if (value !== '' && value !== null) {
-      query[key] = value
+    if (value !== "" && value !== null) {
+      query[key] = value;
     }
   }
 
-  return query
+  return query;
 }
 
 function buildParticipantSummaryQuery(page = 1) {
   const query = {
     page,
     per_page: participantSummaryRowsPerPage.value,
-  }
+  };
 
   for (const [key, value] of Object.entries(participantSummaryFilters)) {
-    if (value !== '' && value !== null && value !== undefined) {
-      query[key] = value
+    if (value !== "" && value !== null && value !== undefined) {
+      query[key] = value;
     }
   }
 
-  return query
+  return query;
 }
 
-function toDateInput(date) {
-  return date.toISOString().slice(0, 10)
+function toMonthInput(date) {
+  return date.toISOString().slice(0, 7);
 }
 
 function setDefaultDashboardRange() {
-  const today = new Date()
-  const lastMonth = new Date()
-  lastMonth.setMonth(lastMonth.getMonth() - 1)
+  const today = new Date();
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
 
-  dashboardFilters.date_from = toDateInput(lastMonth)
-  dashboardFilters.date_to = toDateInput(today)
+  dashboardFilters.from_month = toMonthInput(lastMonth);
+  dashboardFilters.to_month = toMonthInput(today);
+}
+
+function monthParts(value) {
+  const [yearValue, monthValue] = String(value || "").split("-");
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+
+  if (!year || !month) {
+    return null;
+  }
+
+  return {
+    year,
+    month,
+    yearValue,
+    monthValue,
+  };
+}
+
+function dashboardDateRange() {
+  const from = monthParts(dashboardFilters.from_month);
+  const to = monthParts(dashboardFilters.to_month);
+
+  if (!from && !to) {
+    return {};
+  }
+
+  const first = from || to;
+  const second = to || from;
+  const firstValue = first.year * 100 + first.month;
+  const secondValue = second.year * 100 + second.month;
+  const start = firstValue <= secondValue ? first : second;
+  const end = firstValue <= secondValue ? second : first;
+  const lastDay = new Date(end.year, end.month, 0).getDate();
+
+  return {
+    date_from: `${start.yearValue}-${start.monthValue}-01`,
+    date_to: `${end.yearValue}-${end.monthValue}-${String(lastDay).padStart(2, "0")}`,
+  };
 }
 
 function normalizeList(value) {
-  if (Array.isArray(value)) return value
-  if (Array.isArray(value?.data)) return value.data
-  if (value && typeof value === 'object') return Object.values(value)
-  return []
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (value && typeof value === "object") return Object.values(value);
+  return [];
 }
 
 function doughnutData(labels, values, colors) {
@@ -303,11 +468,11 @@ function doughnutData(labels, values, colors) {
       {
         data: values,
         backgroundColor: colors,
-        borderColor: '#ffffff',
+        borderColor: "#ffffff",
         borderWidth: 3,
       },
     ],
-  }
+  };
 }
 
 const chartOptions = {
@@ -315,303 +480,369 @@ const chartOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'bottom',
+      position: "bottom",
       labels: {
         boxWidth: 10,
-        color: '#374151',
+        color: "#374151",
         font: {
           size: 11,
         },
       },
     },
   },
-}
+};
 
-const attendanceChartData = computed(() => doughnutData(
-  [
-    `Present ${dashboardPercentages.value.attendance?.present || 0}%`,
-    `Absent ${dashboardPercentages.value.attendance?.absent || 0}%`,
-  ],
-  [dashboardTotals.value.total_present || 0, dashboardTotals.value.total_absent || 0],
-  ['#a83632', '#d1d5db'],
-))
+const attendanceChartData = computed(() =>
+  doughnutData(
+    [
+      `Present ${dashboardPercentages.value.attendance?.present || 0}%`,
+      `Absent ${dashboardPercentages.value.attendance?.absent || 0}%`,
+    ],
+    [
+      dashboardTotals.value.total_present || 0,
+      dashboardTotals.value.total_absent || 0,
+    ],
+    ["#a83632", "#d1d5db"],
+  ),
+);
 
-const peopleChartData = computed(() => doughnutData(
-  [
-    `Workers ${dashboardPercentages.value.presentPeople?.workers || 0}%`,
-    `Members ${dashboardPercentages.value.presentPeople?.members || 0}%`,
-  ],
-  [dashboardTotals.value.worker_present || 0, dashboardTotals.value.member_present || 0],
-  ['#a83632', '#2563eb'],
-))
+const peopleChartData = computed(() =>
+  doughnutData(
+    [
+      `Workers ${dashboardPercentages.value.presentPeople?.workers || 0}%`,
+      `Members ${dashboardPercentages.value.presentPeople?.members || 0}%`,
+    ],
+    [
+      dashboardTotals.value.worker_present || 0,
+      dashboardTotals.value.member_present || 0,
+    ],
+    ["#a83632", "#2563eb"],
+  ),
+);
 
-const arrivalChartData = computed(() => doughnutData(
-  [
-    `Early ${dashboardPercentages.value.arrival?.early || 0}%`,
-    `Late ${dashboardPercentages.value.arrival?.late || 0}%`,
-  ],
-  [dashboardTotals.value.early_count || 0, dashboardTotals.value.late_count || 0],
-  ['#16a34a', '#f59e0b'],
-))
+const arrivalChartData = computed(() =>
+  doughnutData(
+    [
+      `Early ${dashboardPercentages.value.arrival?.early || 0}%`,
+      `Late ${dashboardPercentages.value.arrival?.late || 0}%`,
+    ],
+    [
+      dashboardTotals.value.early_count || 0,
+      dashboardTotals.value.late_count || 0,
+    ],
+    ["#16a34a", "#f59e0b"],
+  ),
+);
 
 const recordTypeChartData = computed(() => ({
   labels: dashboardRecordTypes.value.map((item) => item.label),
   datasets: [
     {
-      label: 'Present',
+      label: "Present",
       data: dashboardRecordTypes.value.map((item) => item.totalPresent),
-      backgroundColor: '#a83632',
+      backgroundColor: "#a83632",
       borderRadius: 8,
     },
     {
-      label: 'Absent',
+      label: "Absent",
       data: dashboardRecordTypes.value.map((item) => item.totalAbsent),
-      backgroundColor: '#d1d5db',
+      backgroundColor: "#d1d5db",
       borderRadius: 8,
     },
   ],
-}))
+}));
 
 const dailyChartData = computed(() => ({
   labels: dashboardDaily.value.map((item) => String(item.date).slice(0, 10)),
   datasets: [
     {
-      label: 'Present',
-      data: dashboardDaily.value.map((item) => Number(item.total_present || item.totalPresent || 0)),
-      borderColor: '#a83632',
-      backgroundColor: '#a83632',
+      label: "Present",
+      data: dashboardDaily.value.map((item) =>
+        Number(item.total_present || item.totalPresent || 0),
+      ),
+      borderColor: "#a83632",
+      backgroundColor: "#a83632",
       tension: 0.35,
     },
     {
-      label: 'Absent',
-      data: dashboardDaily.value.map((item) => Number(item.total_absent || item.totalAbsent || 0)),
-      borderColor: '#6b7280',
-      backgroundColor: '#6b7280',
+      label: "Absent",
+      data: dashboardDaily.value.map((item) =>
+        Number(item.total_absent || item.totalAbsent || 0),
+      ),
+      borderColor: "#6b7280",
+      backgroundColor: "#6b7280",
       tension: 0.35,
     },
   ],
-}))
+}));
 
 async function fetchDefaultPrayerGroup() {
   try {
-    const response = await request('/prayer-group', { method: 'GET' })
-    defaultPrayerGroup.value = response?.data || null
+    const response = await request("/prayer-group", { method: "GET" });
+    defaultPrayerGroup.value = response?.data || null;
   } catch {
-    defaultPrayerGroup.value = null
+    defaultPrayerGroup.value = null;
   }
 }
 
 async function fetchRecords(page = 1) {
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = "";
 
   try {
-    const response = await request('/prayer-group-records', {
-      method: 'GET',
+    const response = await request("/prayer-group-records", {
+      method: "GET",
       query: buildQuery(page),
-    })
+    });
 
-    records.value = Array.isArray(response?.data) ? response.data : []
+    records.value = Array.isArray(response?.data) ? response.data : [];
     meta.value = {
       ...meta.value,
       ...(response?.meta || {}),
-    }
-    rows.value = Number(meta.value.per_page || rows.value)
-    first.value = ((Number(meta.value.current_page) || page) - 1) * rows.value
+    };
+    rows.value = Number(meta.value.per_page || rows.value);
+    first.value = ((Number(meta.value.current_page) || page) - 1) * rows.value;
   } catch (error) {
-    records.value = []
-    errorMessage.value = error?.data?.message || error?.message || 'Unable to load prayer group records.'
+    records.value = [];
+    errorMessage.value =
+      error?.data?.message ||
+      error?.message ||
+      "Unable to load prayer group records.";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function fetchDashboard() {
   if (!canViewDashboard.value) {
-    dashboard.value = null
-    return
+    dashboard.value = null;
+    return;
   }
 
   try {
-    const response = await request('/prayer-dashboard', {
-      method: 'GET',
+    const range = dashboardDateRange();
+
+    const response = await request("/prayer-dashboard", {
+      method: "GET",
       query: {
-        date_from: dashboardFilters.date_from || filters.date || undefined,
-        date_to: dashboardFilters.date_to || filters.date || undefined,
+        date_from: range.date_from || filters.date || undefined,
+        date_to: range.date_to || filters.date || undefined,
         record_type: filters.type || undefined,
         church_id: filters.church_id || undefined,
         fellowship_id: filters.fellowship_id || undefined,
         cell_id: filters.cell_id || undefined,
       },
-    })
+    });
 
-    dashboard.value = response?.data || null
+    dashboard.value = response?.data || null;
   } catch {
-    dashboard.value = null
+    dashboard.value = null;
   }
 }
 
 async function fetchParticipantSummary(page = 1) {
-  participantSummaryLoading.value = true
-  errorMessage.value = ''
+  participantSummaryLoading.value = true;
+  errorMessage.value = "";
 
   try {
-    const response = await request('/prayer-participants/summary', {
-      method: 'GET',
+    const response = await request("/prayer-participants/summary", {
+      method: "GET",
       query: buildParticipantSummaryQuery(page),
-    })
+    });
 
-    participantSummaryRows.value = Array.isArray(response?.data) ? response.data : []
+    participantSummaryRows.value = Array.isArray(response?.data)
+      ? response.data
+      : [];
     participantSummaryMeta.value = {
       ...participantSummaryMeta.value,
       ...(response?.meta || {}),
-    }
+    };
     participantSummaryInfo.value = {
       ...participantSummaryInfo.value,
       ...(response?.summary || {}),
-    }
-    participantSummaryRowsPerPage.value = Number(participantSummaryMeta.value.per_page || participantSummaryRowsPerPage.value)
-    participantSummaryFirst.value = ((Number(participantSummaryMeta.value.current_page) || page) - 1) * participantSummaryRowsPerPage.value
+    };
+    participantSummaryRowsPerPage.value = Number(
+      participantSummaryMeta.value.per_page ||
+        participantSummaryRowsPerPage.value,
+    );
+    participantSummaryFirst.value =
+      ((Number(participantSummaryMeta.value.current_page) || page) - 1) *
+      participantSummaryRowsPerPage.value;
   } catch (error) {
-    participantSummaryRows.value = []
-    errorMessage.value = error?.data?.message || error?.message || 'Unable to load participant summary.'
+    participantSummaryRows.value = [];
+    errorMessage.value =
+      error?.data?.message ||
+      error?.message ||
+      "Unable to load participant summary.";
   } finally {
-    participantSummaryLoading.value = false
+    participantSummaryLoading.value = false;
   }
 }
 
 function openParticipantSummary() {
-  participantSummaryFilters.date_from = dashboardFilters.date_from
-  participantSummaryFilters.date_to = dashboardFilters.date_to
-  participantSummaryFilters.church_id = filters.church_id
-  participantSummaryFilters.fellowship_id = filters.fellowship_id
-  participantSummaryFilters.cell_id = filters.cell_id
-  participantSummaryFilters.person_type = ''
-  participantSummaryFilters.participation_min = null
-  participantSummaryFilters.participation_max = null
-  participantSummaryFirst.value = 0
-  participantSummaryOpen.value = true
-  fetchParticipantSummary(1)
+  const range = dashboardDateRange();
+
+  participantSummaryFilters.date_from = range.date_from || "";
+  participantSummaryFilters.date_to = range.date_to || "";
+  participantSummaryFilters.church_id = filters.church_id;
+  participantSummaryFilters.fellowship_id = filters.fellowship_id;
+  participantSummaryFilters.cell_id = filters.cell_id;
+  participantSummaryFilters.person_type = "";
+  participantSummaryFilters.participation_min = null;
+  participantSummaryFilters.participation_max = null;
+  participantSummaryFirst.value = 0;
+  participantSummaryOpen.value = true;
+  fetchParticipantSummary(1);
 }
 
 function applyParticipantSummaryFilters() {
-  participantSummaryFirst.value = 0
-  fetchParticipantSummary(1)
+  participantSummaryFirst.value = 0;
+  fetchParticipantSummary(1);
 }
 
 function clearParticipantSummaryFilters() {
-  participantSummaryFilters.date_from = dashboardFilters.date_from
-  participantSummaryFilters.date_to = dashboardFilters.date_to
-  participantSummaryFilters.church_id = null
-  participantSummaryFilters.fellowship_id = null
-  participantSummaryFilters.cell_id = null
-  participantSummaryFilters.person_type = ''
-  participantSummaryFilters.participation_min = null
-  participantSummaryFilters.participation_max = null
-  participantSummaryFirst.value = 0
-  fetchParticipantSummary(1)
+  const range = dashboardDateRange();
+
+  participantSummaryFilters.date_from = range.date_from || "";
+  participantSummaryFilters.date_to = range.date_to || "";
+  participantSummaryFilters.church_id = null;
+  participantSummaryFilters.fellowship_id = null;
+  participantSummaryFilters.cell_id = null;
+  participantSummaryFilters.person_type = "";
+  participantSummaryFilters.participation_min = null;
+  participantSummaryFilters.participation_max = null;
+  participantSummaryFirst.value = 0;
+  fetchParticipantSummary(1);
 }
 
 function onParticipantSummaryPage(event) {
-  participantSummaryRowsPerPage.value = event.rows
-  participantSummaryFirst.value = event.first
-  fetchParticipantSummary(event.page + 1)
+  participantSummaryRowsPerPage.value = event.rows;
+  participantSummaryFirst.value = event.first;
+  fetchParticipantSummary(event.page + 1);
 }
 
 function resetForm() {
-  form.type = isPrayerGroupLeader.value ? 'prayer_group' : 'custom'
-  form.title = form.type === 'prayer_group' ? `Prayer group - ${defaultPrayerGroup.value?.day || ''}`.trim() : ''
-  form.leader_name = form.type === 'prayer_group' ? defaultPrayerGroup.value?.leaderName || '' : ''
-  form.time_started = ''
-  form.time_ended = ''
-  form.participants = ''
-  formError.value = ''
+  form.type = isPrayerGroupLeader.value ? "prayer_group" : "custom";
+  form.time_started = "";
+  form.time_ended = "";
+  form.title =
+    form.type === "prayer_group"
+      ? prayerGroupTitle(defaultPrayerGroup.value?.day || "", form.time_started)
+      : "";
+  form.leader_name =
+    form.type === "prayer_group"
+      ? defaultPrayerGroup.value?.leaderName || ""
+      : "";
+  formError.value = "";
 }
 
 function openCreateDialog() {
-  resetForm()
-  dialogOpen.value = true
-}
-
-function participantPayload() {
-  return String(form.participants || '')
-    .split(/\n|,/)
-    .map((name) => name.trim())
-    .filter(Boolean)
-    .map((name) => ({ name }))
+  resetForm();
+  dialogOpen.value = true;
 }
 
 async function createRecord() {
-  saving.value = true
-  formError.value = ''
+  saving.value = true;
+  formError.value = "";
 
   try {
-    await request('/prayer-group-records', {
-      method: 'POST',
+    await request("/prayer-group-records", {
+      method: "POST",
       body: {
         type: form.type,
         title: form.title,
         leader_name: form.leader_name,
         time_started: form.time_started,
         time_ended: form.time_ended,
-        participants: participantPayload(),
       },
-    })
+    });
 
-    dialogOpen.value = false
-    await fetchRecords(1)
-    await fetchDashboard()
+    dialogOpen.value = false;
+    await fetchRecords(1);
+    await fetchDashboard();
   } catch (error) {
-    formError.value = error?.data?.message || error?.message || 'Unable to create prayer group record.'
+    formError.value =
+      error?.data?.message ||
+      error?.message ||
+      "Unable to create prayer group record.";
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 async function openAttendanceDialog(record) {
-  selectedRecord.value = record
-  attendanceRows.value = []
-  attendanceForm.participant = null
-  attendanceForm.arrival_status = 'early'
-  participantOptions.value = []
-  participantSearchTerm.value = ''
-  participantStatusFilter.value = 'all'
-  attendanceSearchOpen.value = true
-  attendanceDialogOpen.value = true
+  selectedRecord.value = record;
+  attendanceRows.value = [];
+  attendanceForm.participant = null;
+  attendanceForm.arrival_status = "early";
+  participantOptions.value = [];
+  participantSearchTerm.value = "";
+  participantStatusFilter.value = "all";
+  attendanceSearchOpen.value = true;
+  attendanceDialogOpen.value = true;
 
   try {
-    const response = await request(`/prayer-group-records/${record.id}/participants`, {
-      method: 'GET',
-      query: {
-        per_page: 100,
-      },
-    })
-    attendanceRows.value = Array.isArray(response?.data) ? response.data : []
+    const [participantsResponse, expectedResponse] = await Promise.all([
+      request(`/prayer-group-records/${record.id}/participants`, {
+        method: "GET",
+        query: {
+          per_page: 100,
+        },
+      }),
+      record.type === "prayer_group"
+        ? request(`/prayer-group-records/${record.id}/expected-workers`, {
+            method: "GET",
+          })
+        : Promise.resolve({ data: [] }),
+    ]);
+    attendanceRows.value = mergeExpectedAttendanceRows(
+      Array.isArray(expectedResponse?.data) ? expectedResponse.data : [],
+      Array.isArray(participantsResponse?.data)
+        ? participantsResponse.data
+        : [],
+    );
   } catch {
-    attendanceRows.value = []
+    attendanceRows.value = [];
   }
 }
 
+function mergeExpectedAttendanceRows(expectedRows, savedRows) {
+  const rows = new Map();
+
+  expectedRows.forEach((row) => {
+    rows.set(participantKey(row), row);
+  });
+
+  savedRows.forEach((row) => {
+    rows.set(participantKey(row), {
+      ...row,
+      isExpected:
+        rows.get(participantKey(row))?.isExpected ||
+        isExpectedPrayerWorker(row),
+    });
+  });
+
+  return Array.from(rows.values());
+}
+
 function addAttendanceRow() {
-  const selected = attendanceForm.participant
+  const selected = attendanceForm.participant;
 
   if (!selected) {
-    formError.value = 'Search and select a worker or member.'
-    return
+    formError.value = "Search and select a worker or member.";
+    return;
   }
 
-  const isWorker = selected.personType === 'worker'
-  const id = isWorker ? selected.workerId : selected.memberId
+  const isWorker = selected.personType === "worker";
+  const id = isWorker ? selected.workerId : selected.memberId;
 
-  const exists = presentAttendance.value.some((row) => {
-    return isWorker
-      ? row.personType === 'worker' && Number(row.workerId) === Number(id)
-      : row.personType === 'member' && String(row.memberId) === String(id)
-  })
+  const exists = attendanceRows.value.some(
+    (row) => participantKey(row) === `${selected.personType}:${id}`,
+  );
 
   if (exists) {
-    formError.value = 'This participant has already been added.'
-    return
+    formError.value = "This participant has already been added.";
+    return;
   }
 
   attendanceRows.value = [
@@ -624,36 +855,57 @@ function addAttendanceRow() {
       personName: selected.name || selected.label,
       slug: selected.slug,
       arrivalStatus: attendanceForm.arrival_status,
-      participationStatus: 'present',
+      participationStatus: "present",
+      expectedPrayerGroupId: selected.prayerGroupId,
+      attendanceGroup:
+        selected.prayerGroupId &&
+        selectedRecord.value?.prayerGroupId &&
+        Number(selected.prayerGroupId) !==
+          Number(selectedRecord.value.prayerGroupId)
+          ? "other_days"
+          : null,
     },
-  ]
+  ];
 
-  attendanceForm.participant = null
-  formError.value = ''
+  attendanceForm.participant = null;
+  formError.value = "";
 }
 
 async function searchParticipants(event) {
-  const search = String(event?.query || event?.value || '').trim()
-  participantSearchTerm.value = search
+  const search = String(event?.query || event?.value || "").trim();
+  participantSearchTerm.value = search;
 
   if (search.length < 2) {
-    participantOptions.value = []
-    return
+    participantOptions.value = [];
+    return;
   }
 
-  participantSearchLoading.value = true
+  participantSearchLoading.value = true;
 
   try {
-    const response = await request('/prayer-participants/search', {
-      method: 'GET',
-      query: { search },
-    })
+    const response = await request("/prayer-participants/search", {
+      method: "GET",
+      query: { search, church_id: selectedRecord.value?.churchId },
+    });
 
-    participantOptions.value = Array.isArray(response?.data) ? response.data : []
+    participantOptions.value = Array.isArray(response?.data)
+      ? response.data.filter((option) => {
+          if (option.personType !== "worker") return false;
+          if (
+            selectedRecord.value?.type === "prayer_group" &&
+            Number(option.prayerGroupId) ===
+              Number(selectedRecord.value?.prayerGroupId)
+          )
+            return false;
+          return !attendanceRows.value.some(
+            (row) => participantKey(row) === `worker:${option.workerId}`,
+          );
+        })
+      : [];
   } catch {
-    participantOptions.value = []
+    participantOptions.value = [];
   } finally {
-    participantSearchLoading.value = false
+    participantSearchLoading.value = false;
   }
 }
 
@@ -663,145 +915,194 @@ function updateArrival(row, value) {
       return {
         ...item,
         arrivalStatus: value,
-      }
+      };
     }
 
-    return item
-  })
+    return item;
+  });
+}
+
+function updateParticipation(row, present) {
+  attendanceRows.value = attendanceRows.value.map((item) => {
+    if (
+      item === row ||
+      item.id === row.id ||
+      participantKey(item) === participantKey(row)
+    ) {
+      return {
+        ...item,
+        participationStatus: present ? "present" : "absent",
+        arrivalStatus: present ? item.arrivalStatus || "early" : null,
+      };
+    }
+
+    return item;
+  });
 }
 
 function removeAttendanceRow(row) {
   attendanceRows.value = attendanceRows.value.filter((item) => {
-    if (item.participationStatus !== 'present') {
-      return true
+    if (item.participationStatus !== "present") {
+      return true;
     }
 
     if (row.id && item.id) {
-      return item.id !== row.id
+      return item.id !== row.id;
     }
 
-    return !(item.personType === row.personType && String(item.workerId || item.memberId) === String(row.workerId || row.memberId))
-  })
+    return !(
+      item.personType === row.personType &&
+      String(item.workerId || item.memberId) ===
+        String(row.workerId || row.memberId)
+    );
+  });
 }
 
 async function saveAttendance() {
   if (!selectedRecord.value) {
-    return
+    return;
   }
 
-  saving.value = true
-  formError.value = ''
+  saving.value = true;
+  formError.value = "";
 
   try {
-    await request(`/prayer-group-records/${selectedRecord.value.id}/participants`, {
-      method: 'PATCH',
-      body: {
-        participants: presentAttendance.value.map((row) => ({
-          person_type: row.personType,
-          worker_id: row.workerId,
-          member_id: row.memberId,
-          arrival_status: row.arrivalStatus,
-        })),
+    await request(
+      `/prayer-group-records/${selectedRecord.value.id}/participants`,
+      {
+        method: "PATCH",
+        body: {
+          participants: presentAttendance.value.map((row) => ({
+            person_type: row.personType,
+            worker_id: row.workerId,
+            member_id: row.memberId,
+            arrival_status: row.arrivalStatus,
+          })),
+        },
       },
-    })
+    );
 
-    attendanceDialogOpen.value = false
-    await fetchRecords(Math.max(1, Math.floor(first.value / rows.value) + 1))
-    await fetchDashboard()
+    attendanceDialogOpen.value = false;
+    await fetchRecords(Math.max(1, Math.floor(first.value / rows.value) + 1));
+    await fetchDashboard();
   } catch (error) {
-    formError.value = error?.data?.message || error?.message || 'Unable to save attendance.'
+    formError.value =
+      error?.data?.message || error?.message || "Unable to save attendance.";
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 async function completeRecord(record) {
-  completingId.value = record.id
+  completingId.value = record.id;
 
   try {
     await request(`/prayer-group-records/${record.id}/complete`, {
-      method: 'PATCH',
-    })
-    await fetchRecords(Math.max(1, Math.floor(first.value / rows.value) + 1))
+      method: "PATCH",
+    });
+    await fetchRecords(Math.max(1, Math.floor(first.value / rows.value) + 1));
   } catch (error) {
-    errorMessage.value = error?.data?.message || error?.message || 'Unable to complete this record.'
+    errorMessage.value =
+      error?.data?.message ||
+      error?.message ||
+      "Unable to complete this record.";
   } finally {
-    completingId.value = null
+    completingId.value = null;
   }
 }
 
 function onPage(event) {
-  rows.value = event.rows
-  first.value = event.first
-  fetchRecords(event.page + 1)
+  rows.value = event.rows;
+  first.value = event.first;
+  fetchRecords(event.page + 1);
 }
 
 function applyFilters() {
-  first.value = 0
-  fetchRecords(1)
-  fetchDashboard()
+  first.value = 0;
+  fetchRecords(1);
+  fetchDashboard();
 }
 
 function clearFilters() {
   for (const key of Object.keys(filters)) {
-    filters[key] = key.endsWith('_id') ? null : ''
+    filters[key] = key.endsWith("_id") ? null : "";
   }
-  applyFilters()
+  setDefaultDashboardRange();
+  applyFilters();
 }
 
-function applyDashboardRange() {
-  fetchDashboard()
-}
+watch(
+  () => form.type,
+  (type) => {
+    if (type === "prayer_group" && defaultPrayerGroup.value) {
+      form.title = prayerGroupTitle(
+        defaultPrayerGroup.value.day || "",
+        form.time_started,
+      );
+      form.leader_name = defaultPrayerGroup.value.leaderName || "";
+    } else if (type !== "prayer_group") {
+      form.title = "";
+      form.leader_name = "";
+    }
+  },
+);
 
-function resetDashboardRange() {
-  setDefaultDashboardRange()
-  fetchDashboard()
-}
+watch(
+  () => form.time_started,
+  (value) => {
+    if (form.type === "prayer_group" && defaultPrayerGroup.value) {
+      form.title = prayerGroupTitle(defaultPrayerGroup.value.day || "", value);
+    }
+  },
+);
 
-watch(() => form.type, (type) => {
-  if (type === 'prayer_group' && defaultPrayerGroup.value) {
-    form.title = `Prayer group - ${defaultPrayerGroup.value.day || ''}`.trim()
-    form.leader_name = defaultPrayerGroup.value.leaderName || ''
-  } else if (type !== 'prayer_group') {
-    form.title = ''
-    form.leader_name = ''
-  }
-})
+watch(
+  () => filters.church_id,
+  () => {
+    filters.fellowship_id = null;
+    filters.cell_id = null;
+  },
+);
 
-watch(() => filters.church_id, () => {
-  filters.fellowship_id = null
-  filters.cell_id = null
-})
-
-watch(() => filters.fellowship_id, () => {
-  filters.cell_id = null
-})
+watch(
+  () => filters.fellowship_id,
+  () => {
+    filters.cell_id = null;
+  },
+);
 
 onMounted(async () => {
-  setDefaultDashboardRange()
-  await fetchDefaultPrayerGroup()
-  await fetchRecords()
-  await fetchDashboard()
-})
+  setDefaultDashboardRange();
+  await fetchDefaultPrayerGroup();
+  await fetchRecords();
+  await fetchDashboard();
+});
 </script>
 
 <template>
   <section class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div
+      class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+    >
       <div>
-        <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#a83632]">
+        <p
+          class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#a83632]"
+        >
           Records
         </p>
         <h1 class="m-0 text-3xl font-semibold tracking-tight text-gray-950">
           Prayer Group
         </h1>
         <p class="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-          Create and review prayer group, regular vigil, and custom prayer records.
+          Create and review prayer group, regular vigil, and custom prayer
+          records.
         </p>
       </div>
 
       <div class="flex flex-col gap-3 sm:items-end">
-        <div class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm">
+        <div
+          class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm"
+        >
           <span class="font-semibold text-gray-950">{{ totalRecords }}</span>
           <span class="ml-1 text-gray-500">records found</span>
         </div>
@@ -823,53 +1124,89 @@ onMounted(async () => {
 
     <Card class="border border-gray-200 bg-white shadow-sm">
       <template #content>
-        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <Select
-            v-if="showBroadFilters"
-            v-model="filters.type"
-            :options="filterTypeOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="Type"
-            show-clear
-            class="w-full"
-          />
-          <InputText
-            v-model="filters.date"
-            type="date"
-            class="h-11 w-full"
-            placeholder="Date"
-          />
-          <Select
-            v-if="showBroadFilters"
-            v-model="filters.church_id"
-            :options="churchOptions"
-            option-label="name"
-            option-value="id"
-            placeholder="Church"
-            show-clear
-            class="w-full"
-          />
-          <Select
-            v-if="showBroadFilters"
-            v-model="filters.fellowship_id"
-            :options="fellowshipOptions"
-            option-label="name"
-            option-value="id"
-            placeholder="Fellowship"
-            show-clear
-            class="w-full"
-          />
-          <Select
-            v-if="showBroadFilters"
-            v-model="filters.cell_id"
-            :options="cellOptions"
-            option-label="name"
-            option-value="id"
-            placeholder="Cell"
-            show-clear
-            class="w-full"
-          />
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+          <div v-if="showBroadFilters" class="space-y-1">
+            <label
+              class="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >Type</label
+            >
+            <Select
+              v-model="filters.type"
+              :options="filterTypeOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="Type"
+              show-clear
+              class="w-full"
+            />
+          </div>
+          <div class="space-y-1">
+            <label
+              class="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >From month - year</label
+            >
+            <InputText
+              v-model="dashboardFilters.from_month"
+              type="month"
+              class="h-11 w-full"
+            />
+          </div>
+          <div class="space-y-1">
+            <label
+              class="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >To month - year</label
+            >
+            <InputText
+              v-model="dashboardFilters.to_month"
+              type="month"
+              class="h-11 w-full"
+            />
+          </div>
+          <div v-if="showBroadFilters" class="space-y-1">
+            <label
+              class="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >Church</label
+            >
+            <Select
+              v-model="filters.church_id"
+              :options="churchOptions"
+              option-label="name"
+              option-value="id"
+              placeholder="Church"
+              show-clear
+              class="w-full"
+            />
+          </div>
+          <div v-if="showBroadFilters" class="space-y-1">
+            <label
+              class="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >Fellowship</label
+            >
+            <Select
+              v-model="filters.fellowship_id"
+              :options="fellowshipOptions"
+              option-label="name"
+              option-value="id"
+              placeholder="Fellowship"
+              show-clear
+              class="w-full"
+            />
+          </div>
+          <div v-if="showBroadFilters" class="space-y-1">
+            <label
+              class="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >Cell</label
+            >
+            <Select
+              v-model="filters.cell_id"
+              :options="cellOptions"
+              option-label="name"
+              option-value="id"
+              placeholder="Cell"
+              show-clear
+              class="w-full"
+            />
+          </div>
         </div>
 
         <div class="mt-4 flex justify-end gap-2 border-t border-gray-100 pt-4">
@@ -894,60 +1231,51 @@ onMounted(async () => {
 
     <Card v-if="dashboard" class="border border-gray-200 bg-white shadow-sm">
       <template #content>
-        <div class="flex flex-col gap-4 border-b border-gray-100 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <div class="border-b border-gray-100 pb-5">
           <div>
-            <p class="m-0 text-xs font-bold uppercase tracking-[0.18em] text-[#a83632]">
+            <p
+              class="m-0 text-xs font-bold uppercase tracking-[0.18em] text-[#a83632]"
+            >
               Attendance dashboard
             </p>
-            <h2 class="mb-0 mt-2 text-xl font-semibold tracking-tight text-gray-950">
-              Prayer attendance performance
+            <h2
+              class="mb-0 mt-2 text-xl font-semibold tracking-tight text-gray-950"
+            >
+              Prayer attendance records
             </h2>
             <p class="m-0 mt-1 text-sm text-gray-500">
               Percentages and trends for the selected reporting period.
             </p>
           </div>
-
-          <div class="grid gap-3 sm:grid-cols-[150px_150px_auto_auto] sm:items-end">
-            <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase tracking-wide text-gray-500">From</label>
-              <InputText v-model="dashboardFilters.date_from" type="date" class="h-11 w-full" />
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-semibold uppercase tracking-wide text-gray-500">To</label>
-              <InputText v-model="dashboardFilters.date_to" type="date" class="h-11 w-full" />
-            </div>
-            <Button
-              label="Last month"
-              icon="pi pi-calendar"
-              severity="secondary"
-              outlined
-              class="!h-11"
-              @click="resetDashboardRange"
-            />
-            <Button
-              label="Refresh"
-              icon="pi pi-refresh"
-              class="!h-11 !border-[#a83632] !bg-[#a83632] !text-white hover:!border-[#922f2c] hover:!bg-[#922f2c] hover:!text-white"
-              @click="applyDashboardRange"
-            />
-          </div>
         </div>
 
         <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <p class="m-0 text-sm text-gray-500">Present attendance</p>
+            <p class="m-0 text-sm text-gray-500">
+              Number of Present workers/members
+            </p>
             <div class="mt-2 flex items-end justify-between gap-3">
-              <h3 class="m-0 text-2xl font-semibold text-gray-950">{{ dashboardTotals.total_present || 0 }}</h3>
-              <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#a83632] shadow-sm">
+              <h3 class="m-0 text-2xl font-semibold text-gray-950">
+                {{ dashboardTotals.total_present || 0 }}
+              </h3>
+              <span
+                class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#a83632] shadow-sm"
+              >
                 {{ dashboardPercentages.attendance?.present || 0 }}%
               </span>
             </div>
           </div>
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <p class="m-0 text-sm text-gray-500">Absent attendance</p>
+            <p class="m-0 text-sm text-gray-500">
+              Number of Absent workers/members
+            </p>
             <div class="mt-2 flex items-end justify-between gap-3">
-              <h3 class="m-0 text-2xl font-semibold text-gray-950">{{ dashboardTotals.total_absent || 0 }}</h3>
-              <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+              <h3 class="m-0 text-2xl font-semibold text-gray-950">
+                {{ dashboardTotals.total_absent || 0 }}
+              </h3>
+              <span
+                class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-sm"
+              >
                 {{ dashboardPercentages.attendance?.absent || 0 }}%
               </span>
             </div>
@@ -955,8 +1283,12 @@ onMounted(async () => {
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
             <p class="m-0 text-sm text-gray-500">Workers who prayed</p>
             <div class="mt-2 flex items-end justify-between gap-3">
-              <h3 class="m-0 text-2xl font-semibold text-gray-950">{{ dashboardTotals.worker_present || 0 }}</h3>
-              <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#a83632] shadow-sm">
+              <h3 class="m-0 text-2xl font-semibold text-gray-950">
+                {{ dashboardTotals.worker_present || 0 }}
+              </h3>
+              <span
+                class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#a83632] shadow-sm"
+              >
                 {{ dashboardPercentages.presentPeople?.workers || 0 }}%
               </span>
             </div>
@@ -964,8 +1296,12 @@ onMounted(async () => {
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
             <p class="m-0 text-sm text-gray-500">Members who prayed</p>
             <div class="mt-2 flex items-end justify-between gap-3">
-              <h3 class="m-0 text-2xl font-semibold text-gray-950">{{ dashboardTotals.member_present || 0 }}</h3>
-              <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-blue-700 shadow-sm">
+              <h3 class="m-0 text-2xl font-semibold text-gray-950">
+                {{ dashboardTotals.member_present || 0 }}
+              </h3>
+              <span
+                class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-blue-700 shadow-sm"
+              >
                 {{ dashboardPercentages.presentPeople?.members || 0 }}%
               </span>
             </div>
@@ -979,8 +1315,13 @@ onMounted(async () => {
             @click="dashboardChartsOpen = !dashboardChartsOpen"
           >
             <div>
-              <h3 class="m-0 text-sm font-semibold text-gray-950">Prayer group charts</h3>
-              <p class="m-0 mt-1 text-xs text-gray-500">Visual breakdowns for attendance, people type, arrival, record type, and daily trend.</p>
+              <h3 class="m-0 text-sm font-semibold text-gray-950">
+                Prayer group charts
+              </h3>
+              <p class="m-0 mt-1 text-xs text-gray-500">
+                Visual breakdowns for attendance, people type, arrival, record
+                type, and daily trend.
+              </p>
             </div>
             <i
               class="pi text-sm text-gray-500 transition-transform"
@@ -990,30 +1331,53 @@ onMounted(async () => {
 
           <div v-if="dashboardChartsOpen" class="border-t border-gray-200 p-4">
             <div class="grid gap-4 xl:grid-cols-3">
-              <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div
+                class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+              >
                 <div class="mb-3 flex items-center justify-between">
-                  <h3 class="m-0 text-sm font-semibold text-gray-950">Present vs absent</h3>
-                  <span class="text-xs text-gray-500">{{ dashboardPercentages.attendance?.present || 0 }}% present</span>
+                  <h3 class="m-0 text-sm font-semibold text-gray-950">
+                    Present vs absent
+                  </h3>
+                  <span class="text-xs text-gray-500"
+                    >{{ dashboardPercentages.attendance?.present || 0 }}%
+                    present</span
+                  >
                 </div>
                 <div class="h-64">
-                  <Doughnut :data="attendanceChartData" :options="chartOptions" />
+                  <Doughnut
+                    :data="attendanceChartData"
+                    :options="chartOptions"
+                  />
                 </div>
               </div>
 
-              <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div
+                class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+              >
                 <div class="mb-3 flex items-center justify-between">
-                  <h3 class="m-0 text-sm font-semibold text-gray-950">Workers vs members</h3>
-                  <span class="text-xs text-gray-500">{{ dashboardPercentages.presentPeople?.workers || 0 }}% workers</span>
+                  <h3 class="m-0 text-sm font-semibold text-gray-950">
+                    Workers vs members
+                  </h3>
+                  <span class="text-xs text-gray-500"
+                    >{{ dashboardPercentages.presentPeople?.workers || 0 }}%
+                    workers</span
+                  >
                 </div>
                 <div class="h-64">
                   <Doughnut :data="peopleChartData" :options="chartOptions" />
                 </div>
               </div>
 
-              <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div
+                class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+              >
                 <div class="mb-3 flex items-center justify-between">
-                  <h3 class="m-0 text-sm font-semibold text-gray-950">Early vs late</h3>
-                  <span class="text-xs text-gray-500">{{ dashboardPercentages.arrival?.early || 0 }}% early</span>
+                  <h3 class="m-0 text-sm font-semibold text-gray-950">
+                    Early vs late
+                  </h3>
+                  <span class="text-xs text-gray-500"
+                    >{{ dashboardPercentages.arrival?.early || 0 }}% early</span
+                  >
                 </div>
                 <div class="h-64">
                   <Doughnut :data="arrivalChartData" :options="chartOptions" />
@@ -1022,20 +1386,36 @@ onMounted(async () => {
             </div>
 
             <div class="mt-4 grid gap-4 xl:grid-cols-2">
-              <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <h3 class="m-0 text-sm font-semibold text-gray-950">Attendance by prayer type</h3>
-                  <span class="text-xs text-gray-500">Regular, regular vigil, and custom records</span>
+              <div
+                class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+              >
+                <div
+                  class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <h3 class="m-0 text-sm font-semibold text-gray-950">
+                    Attendance by prayer type
+                  </h3>
+                  <span class="text-xs text-gray-500"
+                    >Regular, regular vigil, and custom records</span
+                  >
                 </div>
                 <div class="h-72">
                   <Bar :data="recordTypeChartData" :options="chartOptions" />
                 </div>
               </div>
 
-              <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <h3 class="m-0 text-sm font-semibold text-gray-950">Daily attendance trend</h3>
-                  <span class="text-xs text-gray-500">Present and absent counts by day</span>
+              <div
+                class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+              >
+                <div
+                  class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <h3 class="m-0 text-sm font-semibold text-gray-950">
+                    Daily attendance trend
+                  </h3>
+                  <span class="text-xs text-gray-500"
+                    >Present and absent counts by day</span
+                  >
                 </div>
                 <div class="h-72">
                   <Line :data="dailyChartData" :options="chartOptions" />
@@ -1047,11 +1427,7 @@ onMounted(async () => {
       </template>
     </Card>
 
-    <Message
-      v-if="errorMessage"
-      severity="error"
-      :closable="false"
-    >
+    <Message v-if="errorMessage" severity="error" :closable="false">
       {{ errorMessage }}
     </Message>
 
@@ -1077,7 +1453,9 @@ onMounted(async () => {
         >
           <template #empty>
             <div class="py-12 text-center">
-              <span class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-gray-100 text-gray-500">
+              <span
+                class="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-gray-100 text-gray-500"
+              >
                 <i class="pi pi-search text-lg" />
               </span>
               <h2 class="mb-1 mt-4 text-base font-semibold text-gray-950">
@@ -1091,49 +1469,96 @@ onMounted(async () => {
 
           <Column field="title" header="Title" style="min-width: 210px">
             <template #body="{ data }">
-              <Skeleton v-if="data.__loading" height="1.25rem" border-radius="8px" />
-              <span v-else class="record-title-pill">{{ data.title }}</span>
+              <Skeleton
+                v-if="data.__loading"
+                height="1.25rem"
+                border-radius="8px"
+              />
+              <span v-else>{{ displayPrayerRecordTitle(data) }}</span>
             </template>
           </Column>
           <Column field="type" header="Type" style="min-width: 150px">
             <template #body="{ data }">
-              <Skeleton v-if="data.__loading" height="1.25rem" border-radius="8px" />
-              <Tag v-else :value="typeLabel(data.type)" :severity="typeSeverity(data.type)" rounded />
+              <Skeleton
+                v-if="data.__loading"
+                height="1.25rem"
+                border-radius="8px"
+              />
+              <Tag
+                v-else
+                :value="typeLabel(data.type)"
+                :severity="typeSeverity(data.type)"
+                rounded
+              />
             </template>
           </Column>
           <Column field="leaderName" header="Leader" style="min-width: 170px">
             <template #body="{ data }">
-              <Skeleton v-if="data.__loading" height="1.25rem" border-radius="8px" />
-              <span v-else>{{ data.leaderName || '-' }}</span>
+              <Skeleton
+                v-if="data.__loading"
+                height="1.25rem"
+                border-radius="8px"
+              />
+              <span v-else>{{ data.leaderName || "-" }}</span>
             </template>
           </Column>
           <Column field="timeStarted" header="Started" style="min-width: 190px">
             <template #body="{ data }">
-              <Skeleton v-if="data.__loading" height="1.25rem" border-radius="8px" />
+              <Skeleton
+                v-if="data.__loading"
+                height="1.25rem"
+                border-radius="8px"
+              />
               <span v-else>{{ displayDate(data.timeStarted) }}</span>
             </template>
           </Column>
           <Column field="timeEnded" header="Ended" style="min-width: 190px">
             <template #body="{ data }">
-              <Skeleton v-if="data.__loading" height="1.25rem" border-radius="8px" />
+              <Skeleton
+                v-if="data.__loading"
+                height="1.25rem"
+                border-radius="8px"
+              />
               <span v-else>{{ displayDate(data.timeEnded) }}</span>
             </template>
           </Column>
           <Column field="churchName" header="Church" style="min-width: 170px">
             <template #body="{ data }">
-              <Skeleton v-if="data.__loading" height="1.25rem" border-radius="8px" />
-              <span v-else>{{ data.churchName || '-' }}</span>
+              <Skeleton
+                v-if="data.__loading"
+                height="1.25rem"
+                border-radius="8px"
+              />
+              <span v-else>{{ data.churchName || "-" }}</span>
             </template>
           </Column>
           <Column field="status" header="Status" style="min-width: 140px">
             <template #body="{ data }">
-              <Skeleton v-if="data.__loading" height="1.25rem" border-radius="8px" />
-              <Tag v-else :value="data.status" :severity="statusSeverity(data.status)" rounded />
+              <Skeleton
+                v-if="data.__loading"
+                height="1.25rem"
+                border-radius="8px"
+              />
+              <Tag
+                v-else
+                :value="data.status"
+                :severity="statusSeverity(data.status)"
+                rounded
+              />
             </template>
           </Column>
-          <Column header="Actions" frozen align-frozen="right" style="min-width: 150px">
+          <Column
+            header="Actions"
+            frozen
+            align-frozen="right"
+            style="min-width: 150px"
+          >
             <template #body="{ data }">
-              <Skeleton v-if="data.__loading" height="2rem" border-radius="8px" />
+              <Skeleton
+                v-if="data.__loading"
+                height="2rem"
+                border-radius="8px"
+              />
               <Button
                 v-else
                 label="Complete"
@@ -1171,11 +1596,19 @@ onMounted(async () => {
           <div class="grid gap-3 md:grid-cols-4">
             <div class="space-y-2">
               <label class="text-sm font-semibold text-gray-900">From</label>
-              <InputText v-model="participantSummaryFilters.date_from" type="date" class="w-full" />
+              <InputText
+                v-model="participantSummaryFilters.date_from"
+                type="date"
+                class="w-full"
+              />
             </div>
             <div class="space-y-2">
               <label class="text-sm font-semibold text-gray-900">To</label>
-              <InputText v-model="participantSummaryFilters.date_to" type="date" class="w-full" />
+              <InputText
+                v-model="participantSummaryFilters.date_to"
+                type="date"
+                class="w-full"
+              />
             </div>
             <div class="space-y-2">
               <label class="text-sm font-semibold text-gray-900">Type</label>
@@ -1192,9 +1625,15 @@ onMounted(async () => {
               />
             </div>
             <div class="space-y-2">
-              <label class="text-sm font-semibold text-gray-900">Held weeks</label>
-              <div class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-950">
-                {{ participantSummaryInfo.heldWeeks || 0 }} week{{ Number(participantSummaryInfo.heldWeeks || 0) === 1 ? '' : 's' }}
+              <label class="text-sm font-semibold text-gray-900"
+                >Held weeks</label
+              >
+              <div
+                class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-950"
+              >
+                {{ participantSummaryInfo.heldWeeks || 0 }} week{{
+                  Number(participantSummaryInfo.heldWeeks || 0) === 1 ? "" : "s"
+                }}
               </div>
             </div>
           </div>
@@ -1213,7 +1652,9 @@ onMounted(async () => {
               />
             </div>
             <div class="space-y-2">
-              <label class="text-sm font-semibold text-gray-900">Fellowship</label>
+              <label class="text-sm font-semibold text-gray-900"
+                >Fellowship</label
+              >
               <Select
                 v-model="participantSummaryFilters.fellowship_id"
                 :options="fellowshipOptions"
@@ -1238,9 +1679,13 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto] md:items-end">
+          <div
+            class="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto] md:items-end"
+          >
             <div class="space-y-2">
-              <label class="text-sm font-semibold text-gray-900">Participation min</label>
+              <label class="text-sm font-semibold text-gray-900"
+                >Participation min</label
+              >
               <InputNumber
                 v-model="participantSummaryFilters.participation_min"
                 :min="0"
@@ -1251,7 +1696,9 @@ onMounted(async () => {
               />
             </div>
             <div class="space-y-2">
-              <label class="text-sm font-semibold text-gray-900">Participation max</label>
+              <label class="text-sm font-semibold text-gray-900"
+                >Participation max</label
+              >
               <InputNumber
                 v-model="participantSummaryFilters.participation_max"
                 :min="0"
@@ -1277,9 +1724,13 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="rounded-xl border border-[#a83632]/20 bg-[#a83632]/5 px-4 py-3 text-sm text-gray-700">
-          Participation count is based only on <strong>prayer_group</strong> records, grouped by week in the selected date range.
-          Example: <strong>2/4</strong> means present in 2 of 4 prayer group weeks held.
+        <div
+          class="rounded-xl border border-[#a83632]/20 bg-[#a83632]/5 px-4 py-3 text-sm text-gray-700"
+        >
+          Participation count is based only on
+          <strong>prayer_group</strong> records, grouped by week in the selected
+          date range. Example: <strong>2/4</strong> means present in 2 of 4
+          prayer group weeks held.
         </div>
 
         <DataTable
@@ -1298,9 +1749,15 @@ onMounted(async () => {
           @page="onParticipantSummaryPage"
         >
           <Column field="name" header="Name" style="min-width: 220px" />
-          <Column field="participationLabel" header="Participation" style="min-width: 140px">
+          <Column
+            field="participationLabel"
+            header="Participation"
+            style="min-width: 140px"
+          >
             <template #body="{ data }">
-              <span class="rounded-full bg-[#a83632]/10 px-3 py-1 text-sm font-semibold text-[#a83632]">
+              <span
+                class="rounded-full bg-[#a83632]/10 px-3 py-1 text-sm font-semibold text-[#a83632]"
+              >
                 {{ data.participationLabel }}
               </span>
             </template>
@@ -1311,13 +1768,19 @@ onMounted(async () => {
             </template>
           </Column>
           <Column field="churchName" header="Church" style="min-width: 170px">
-            <template #body="{ data }">{{ data.churchName || '-' }}</template>
+            <template #body="{ data }">{{ data.churchName || "-" }}</template>
           </Column>
-          <Column field="fellowshipName" header="Fellowship" style="min-width: 180px">
-            <template #body="{ data }">{{ data.fellowshipName || '-' }}</template>
+          <Column
+            field="fellowshipName"
+            header="Fellowship"
+            style="min-width: 180px"
+          >
+            <template #body="{ data }">{{
+              data.fellowshipName || "-"
+            }}</template>
           </Column>
           <Column field="cellName" header="Cell" style="min-width: 170px">
-            <template #body="{ data }">{{ data.cellName || '-' }}</template>
+            <template #body="{ data }">{{ data.cellName || "-" }}</template>
           </Column>
         </DataTable>
       </div>
@@ -1358,29 +1821,37 @@ onMounted(async () => {
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="space-y-2">
-            <label class="text-sm font-semibold text-gray-900">Time started</label>
-            <InputText v-model="form.time_started" type="datetime-local" class="h-11 w-full" />
+            <label class="text-sm font-semibold text-gray-900"
+              >Time started</label
+            >
+            <InputText
+              v-model="form.time_started"
+              type="datetime-local"
+              class="h-11 w-full"
+            />
           </div>
           <div class="space-y-2">
-            <label class="text-sm font-semibold text-gray-900">Time ended</label>
-            <InputText v-model="form.time_ended" type="datetime-local" class="h-11 w-full" />
+            <label class="text-sm font-semibold text-gray-900"
+              >Time ended</label
+            >
+            <InputText
+              v-model="form.time_ended"
+              type="datetime-local"
+              class="h-11 w-full"
+            />
           </div>
-        </div>
-
-        <div class="space-y-2">
-          <label class="text-sm font-semibold text-gray-900">Participants</label>
-          <Textarea
-            v-model="form.participants"
-            rows="4"
-            class="w-full"
-            placeholder="Enter participant names, one per line"
-          />
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button label="Cancel" severity="secondary" outlined :disabled="saving" @click="dialogOpen = false" />
+          <Button
+            label="Cancel"
+            severity="secondary"
+            outlined
+            :disabled="saving"
+            @click="dialogOpen = false"
+          />
           <Button
             label="Create record"
             icon="pi pi-save"
@@ -1408,26 +1879,38 @@ onMounted(async () => {
           <div class="grid gap-3 text-sm sm:grid-cols-4">
             <div>
               <p class="m-0 text-gray-500">Present</p>
-              <p class="m-0 mt-1 text-lg font-semibold text-gray-950">{{ attendanceSummary.present }}</p>
+              <p class="m-0 mt-1 text-lg font-semibold text-gray-950">
+                {{ attendanceSummary.present }}
+              </p>
             </div>
             <div>
               <p class="m-0 text-gray-500">Absent</p>
-              <p class="m-0 mt-1 text-lg font-semibold text-gray-950">{{ attendanceSummary.absent }}</p>
+              <p class="m-0 mt-1 text-lg font-semibold text-gray-950">
+                {{ attendanceSummary.absent }}
+              </p>
             </div>
             <div>
               <p class="m-0 text-gray-500">Early / Late</p>
-              <p class="m-0 mt-1 text-lg font-semibold text-gray-950">{{ attendanceSummary.early }} / {{ attendanceSummary.late }}</p>
+              <p class="m-0 mt-1 text-lg font-semibold text-gray-950">
+                {{ attendanceSummary.early }} / {{ attendanceSummary.late }}
+              </p>
             </div>
             <div>
               <p class="m-0 text-gray-500">Regular / Other</p>
-              <p class="m-0 mt-1 text-lg font-semibold text-gray-950">{{ attendanceSummary.regularDay }} / {{ attendanceSummary.otherDays }}</p>
+              <p class="m-0 mt-1 text-lg font-semibold text-gray-950">
+                {{ attendanceSummary.regularDay }} /
+                {{ attendanceSummary.otherDays }}
+              </p>
             </div>
           </div>
           <p
-            v-if="['prayer_group', 'regular_vigil'].includes(selectedRecord?.type)"
+            v-if="
+              ['prayer_group', 'regular_vigil'].includes(selectedRecord?.type)
+            "
             class="m-0 mt-3 text-xs leading-5 text-gray-500"
           >
-            Saving attendance will recalculate expected absences for this {{ typeLabel(selectedRecord?.type) }} record.
+            Saving attendance will recalculate expected absences for this
+            {{ typeLabel(selectedRecord?.type) }} record.
           </p>
         </div>
 
@@ -1438,21 +1921,31 @@ onMounted(async () => {
             @click="attendanceSearchOpen = !attendanceSearchOpen"
           >
             <div>
-              <p class="m-0 text-sm font-semibold text-gray-950">Add worker/member</p>
-              <p class="m-0 mt-1 text-xs text-gray-500">Search by slug or name, then set arrival status.</p>
+              <p class="m-0 text-sm font-semibold text-gray-950">
+                Add make-up worker
+              </p>
+              <p class="m-0 mt-1 text-xs text-gray-500">
+                Search workers in this church whose prayer day is different from
+                this record.
+              </p>
             </div>
             <i
               class="pi text-sm text-gray-500 transition-transform"
-              :class="attendanceSearchOpen ? 'pi-chevron-up' : 'pi-chevron-down'"
+              :class="
+                attendanceSearchOpen ? 'pi-chevron-up' : 'pi-chevron-down'
+              "
             />
           </button>
 
-          <div v-if="attendanceSearchOpen" class="grid gap-3 border-t border-gray-100 p-4 md:grid-cols-[minmax(0,1fr)_160px_120px]">
+          <div
+            v-if="attendanceSearchOpen"
+            class="grid gap-3 border-t border-gray-100 p-4 md:grid-cols-[minmax(0,1fr)_160px_120px]"
+          >
             <AutoComplete
               v-model="attendanceForm.participant"
               :suggestions="participantOptions"
               option-label="label"
-              placeholder="Search by slug or name"
+              placeholder="Search other worker by slug or name"
               dropdown
               force-selection
               :min-length="2"
@@ -1463,14 +1956,23 @@ onMounted(async () => {
             >
               <template #empty>
                 <span class="block px-3 py-2 text-sm text-gray-500">
-                  {{ participantSearchTerm.length < 2 ? 'Type at least 2 characters to search.' : 'No matching worker or member found.' }}
+                  {{
+                    participantSearchTerm.length < 2
+                      ? "Type at least 2 characters to search."
+                      : "No matching make-up worker found."
+                  }}
                 </span>
               </template>
               <template #option="{ option }">
                 <div class="flex flex-col">
-                  <span class="font-semibold text-white">{{ option.name || option.label }}</span>
+                  <span class="font-semibold text-white">{{
+                    option.name || option.label
+                  }}</span>
                   <span class="text-xs text-white/70">
-                    {{ option.personType }}<template v-if="option.slug"> - {{ option.slug }}</template>
+                    {{ option.personType
+                    }}<template v-if="option.slug">
+                      - {{ option.slug }}</template
+                    >
                   </span>
                 </div>
               </template>
@@ -1495,8 +1997,18 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p class="m-0 text-sm font-semibold text-gray-900">Participants</p>
+        <div
+          class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p class="m-0 text-sm font-semibold text-gray-900">
+              Expected prayer-day workers
+            </p>
+            <p class="m-0 mt-1 text-xs text-gray-500">
+              Tick present workers. Unticked expected workers are saved as
+              absent.
+            </p>
+          </div>
           <SelectButton
             v-model="participantStatusFilter"
             :options="[
@@ -1519,15 +2031,34 @@ onMounted(async () => {
           <Column field="personName" header="Person">
             <template #body="{ data }">
               <div class="flex flex-col">
-                <span>{{ data.personName || `${data.personType} ${data.workerId || data.memberId}` }}</span>
-                <span v-if="data.slug" class="text-xs text-gray-500">{{ data.slug }}</span>
+                <span>{{
+                  data.personName ||
+                  `${data.personType} ${data.workerId || data.memberId}`
+                }}</span>
+                <span v-if="data.slug" class="text-xs text-gray-500">{{
+                  data.slug
+                }}</span>
               </div>
             </template>
           </Column>
           <Column field="personType" header="Type" />
           <Column field="participationStatus" header="Status">
             <template #body="{ data }">
+              <label
+                v-if="isExpectedPrayerWorker(data)"
+                class="flex items-center gap-2 text-sm font-semibold text-gray-900"
+              >
+                <Checkbox
+                  :model-value="data.participationStatus === 'present'"
+                  binary
+                  @update:model-value="updateParticipation(data, $event)"
+                />
+                {{
+                  data.participationStatus === "present" ? "Present" : "Absent"
+                }}
+              </label>
               <Tag
+                v-else
                 :value="data.participationStatus"
                 :severity="participationSeverity(data.participationStatus)"
                 rounded
@@ -1559,7 +2090,10 @@ onMounted(async () => {
           <Column header="Actions" style="width: 120px">
             <template #body="{ data }">
               <Button
-                v-if="data.participationStatus === 'present'"
+                v-if="
+                  !isExpectedPrayerWorker(data) &&
+                  data.participationStatus === 'present'
+                "
                 label="Remove"
                 severity="danger"
                 text
@@ -1573,7 +2107,13 @@ onMounted(async () => {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button label="Cancel" severity="secondary" outlined :disabled="saving" @click="attendanceDialogOpen = false" />
+          <Button
+            label="Cancel"
+            severity="secondary"
+            outlined
+            :disabled="saving"
+            @click="attendanceDialogOpen = false"
+          />
           <Button
             label="Save attendance"
             icon="pi pi-save"
@@ -1601,28 +2141,13 @@ onMounted(async () => {
   background: #f9fafb;
 }
 
-:deep(.prayer-records-table .p-datatable-tbody > tr:hover > td span:not(.p-tag):not(.p-tag-label):not(.record-title-pill)) {
-  color: #111827;
-}
-
-:deep(.record-title-pill) {
-  display: inline-flex;
-  max-width: 16rem;
-  align-items: center;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #111827;
-  font-weight: 600;
-  line-height: 1.25rem;
-  padding: 0.25rem 0.75rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-:deep(.prayer-records-table .p-datatable-tbody > tr:hover .record-title-pill) {
-  background: #ffffff;
+:deep(
+  .prayer-records-table
+    .p-datatable-tbody
+    > tr:hover
+    > td
+    span:not(.p-tag):not(.p-tag-label):not(.record-title-pill)
+) {
   color: #111827;
 }
 
@@ -1633,18 +2158,36 @@ onMounted(async () => {
 }
 
 :global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td),
-:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td span:not(.p-tag):not(.p-tag-label):not(.record-title-pill)),
+:global(.dark)
+  :deep(
+    .prayer-records-table
+      .p-datatable-tbody
+      > tr
+      > td
+      span:not(.p-tag):not(.p-tag-label):not(.record-title-pill)
+  ),
 :global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td p),
 :global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td div),
-:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr > td strong) {
+:global(.dark)
+  :deep(.prayer-records-table .p-datatable-tbody > tr > td strong) {
   color: #f9fafb !important;
 }
 
 :global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td),
-:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td span:not(.p-tag):not(.p-tag-label):not(.record-title-pill)),
-:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td p),
-:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td div),
-:global(.dark) :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td strong) {
+:global(.dark)
+  :deep(
+    .prayer-records-table
+      .p-datatable-tbody
+      > tr:hover
+      > td
+      span:not(.p-tag):not(.p-tag-label):not(.record-title-pill)
+  ),
+:global(.dark)
+  :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td p),
+:global(.dark)
+  :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td div),
+:global(.dark)
+  :deep(.prayer-records-table .p-datatable-tbody > tr:hover > td strong) {
   background: #111827;
   color: #f9fafb !important;
 }
