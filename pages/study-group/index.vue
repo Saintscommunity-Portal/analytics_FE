@@ -639,33 +639,6 @@ onMounted(() => {
       errorMessage
     }}</Message>
 
-    <div class="grid gap-4 md:grid-cols-3">
-      <Card class="border border-gray-200 shadow-sm"
-        ><template #content
-          ><p class="m-0 text-sm text-white">Submitted</p>
-          <h2 class="m-0 mt-2 text-2xl font-semibold text-gray-100">
-            {{ totalSubmitted }}
-          </h2></template
-        ></Card
-      >
-      <Card class="border border-gray-200 shadow-sm"
-        ><template #content
-          ><p class="m-0 text-sm text-gray-500">Needs attention</p>
-          <h2 class="m-0 mt-2 text-2xl font-semibold text-[#a83632]">
-            {{ totalNeedsAttention }}
-          </h2></template
-        ></Card
-      >
-      <Card class="border border-gray-200 shadow-sm"
-        ><template #content
-          ><p class="m-0 text-sm text-white">Defaulted</p>
-          <h2 class="m-0 mt-2 text-2xl font-semibold text-gray-100">
-            {{ totalDefaulted }}
-          </h2></template
-        ></Card
-      >
-    </div>
-
     <Card class="border border-gray-200 bg-white shadow-sm">
       <template #content>
         <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-8">
@@ -716,6 +689,33 @@ onMounted(() => {
         </div>
       </template>
     </Card>
+
+    <div class="grid gap-4 md:grid-cols-3">
+      <Card class="border border-gray-200 shadow-sm"
+        ><template #content
+          ><p class="m-0 text-sm text-gray-600 dark:text-gray-300">Submitted</p>
+          <h2 class="m-0 mt-2 text-2xl font-semibold text-gray-950 dark:text-white">
+            {{ totalSubmitted }}
+          </h2></template
+        ></Card
+      >
+      <Card class="border border-gray-200 shadow-sm"
+        ><template #content
+          ><p class="m-0 text-sm text-gray-500">Needs attention</p>
+          <h2 class="m-0 mt-2 text-2xl font-semibold text-[#a83632]">
+            {{ totalNeedsAttention }}
+          </h2></template
+        ></Card
+      >
+      <Card class="border border-gray-200 shadow-sm"
+        ><template #content
+          ><p class="m-0 text-sm text-gray-600 dark:text-gray-300">Defaulted</p>
+          <h2 class="m-0 mt-2 text-2xl font-semibold text-gray-950 dark:text-white">
+            {{ totalDefaulted }}
+          </h2></template
+        ></Card
+      >
+    </div>
 
     <Card class="border border-gray-200 bg-white shadow-sm">
       <template #content>
@@ -864,6 +864,7 @@ onMounted(() => {
         <DataTable
           :value="studyGroups"
           :loading="loading"
+          class="study-groups-table"
           striped-rows
           paginator
           :rows="meta.per_page || 10"
@@ -1168,3 +1169,9 @@ onMounted(() => {
     </Dialog>
   </section>
 </template>
+
+<style scoped>
+:deep(.study-groups-table .p-datatable-tbody > tr) {
+  cursor: pointer;
+}
+</style>

@@ -7,6 +7,7 @@ definePageMeta({
 const route = useRoute()
 const { request } = useAdminApi()
 const authStore = useAuthStore()
+const confirm = useConfirm()
 
 const loading = ref(true)
 const saving = ref(false)
@@ -142,11 +143,48 @@ async function reviewSubmission(action) {
   }
 }
 
+function confirmReview(event, action) {
+  formError.value = ''
+
+  if (action === 'grade' && (reviewForm.grade === null || reviewForm.grade === undefined)) {
+    formError.value = 'Enter a grade between 0 and 100 before grading.'
+    return
+  }
+
+  if (action === 'reject' && !reviewForm.rejection_reason.trim()) {
+    formError.value = 'Enter a rejection reason before rejecting this submission.'
+    return
+  }
+
+  const messages = {
+    grade: 'Grade and approve this submission?',
+    approve: 'Approve this submission?',
+    reject: 'Reject this submission and notify the worker?',
+  }
+
+  confirm.require({
+    target: event.currentTarget,
+    message: messages[action],
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: {
+      label: 'Cancel',
+      severity: 'secondary',
+      outlined: true,
+    },
+    acceptProps: {
+      label: action === 'grade' ? 'Grade and approve' : displayValue(action),
+      severity: action === 'reject' ? 'danger' : action === 'approve' ? 'success' : undefined,
+    },
+    accept: () => reviewSubmission(action),
+  })
+}
+
 onMounted(refresh)
 </script>
 
 <template>
   <section class="space-y-5">
+    <ConfirmPopup />
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <NuxtLink to="/study-group" class="text-sm font-medium text-[#a83632] no-underline">Back to Study Groups</NuxtLink>
@@ -201,6 +239,7 @@ onMounted(refresh)
         <DataTable
           :value="submissions"
           :loading="loading"
+          class="study-group-submissions-table"
           striped-rows
           paginator
           :rows="meta.per_page || 10"
@@ -246,10 +285,16 @@ onMounted(refresh)
       </div>
       <template #footer>
         <Button label="Close" severity="secondary" outlined @click="detailOpen = false" />
-        <Button v-if="canReview" label="Grade" outlined class="!border-[#a83632] !text-[#a83632]" :loading="saving" @click="reviewSubmission('grade')" />
-        <Button v-if="canReview" label="Approve" severity="success" :loading="saving" @click="reviewSubmission('approve')" />
-        <Button v-if="canReview" label="Reject" severity="danger" :loading="saving" @click="reviewSubmission('reject')" />
+        <Button v-if="canReview" label="Grade" outlined class="!border-[#a83632] !text-[#a83632]" :loading="saving" @click="confirmReview($event, 'grade')" />
+        <Button v-if="canReview" label="Approve" severity="success" :loading="saving" @click="confirmReview($event, 'approve')" />
+        <Button v-if="canReview" label="Reject" severity="danger" :loading="saving" @click="confirmReview($event, 'reject')" />
       </template>
     </Dialog>
   </section>
 </template>
+
+<style scoped>
+:deep(.study-group-submissions-table .p-datatable-tbody > tr) {
+  cursor: pointer;
+}
+</style>
