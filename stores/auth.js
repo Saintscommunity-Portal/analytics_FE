@@ -131,6 +131,10 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    mustChangePassword(admin) {
+      return Boolean(admin?.must_change_password || admin?.mustChangePassword)
+    },
+
     async login(credentials) {
       this.loading = true
       this.error = null
@@ -144,6 +148,12 @@ export const useAuthStore = defineStore('auth', {
           body: credentials,
         })
 
+        if (this.mustChangePassword(response?.admin)) {
+          this.clearSession()
+          this.error = 'Please change Password on admin Portal'
+          throw new Error(this.error)
+        }
+
         this.token = response?.token || null
         this.admin = response?.admin || null
         this.entities = this.normalizeEntities(this.admin?.entities, this.admin?.role)
@@ -153,7 +163,7 @@ export const useAuthStore = defineStore('auth', {
 
         return response
       } catch (error) {
-        this.error = error?.data?.message || 'Unable to sign in with those credentials.'
+        this.error = this.error || error?.data?.message || 'Unable to sign in with those credentials.'
         throw error
       } finally {
         this.loading = false
